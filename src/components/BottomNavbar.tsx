@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { Home, Package, ShoppingCart, User } from "lucide-react";
 
 const menuItems = [
-  { name: "Dashboard", href: "/kasir/dashboard", icon: Home },
-  { name: "Transaksi", href: "/kasir/transaksi", icon: ShoppingCart },
-  { name: "Inventaris", href: "/kasir/inventaris", icon: Package },
-  { name: "Profil", href: "/kasir/profil", icon: User },
+  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Transaksi", href: "/transaksi", icon: ShoppingCart },
+  { name: "Inventaris", href: "/kategori-barang", icon: Package },
+  { name: "Profil", href: "/laporan", icon: User },
 ];
 
 export default function BottomNavbar() {
