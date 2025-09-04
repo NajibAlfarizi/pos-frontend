@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 import React, { useState, useEffect, useCallback } from 'react';
@@ -245,6 +246,7 @@ const SparepartPage: React.FC = () => {
   const harga_jual = Number((form.harga_jual as any)?.value) || 0;
 
   const payload = {
+    id_sparepart: modalType === 'add' ? undefined : selectedSparepart?.id_sparepart,
     kode_barang,
     nama_barang,
     id_kategori_barang,

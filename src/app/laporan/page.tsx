@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useEffect, useState, useCallback } from "react";
@@ -86,7 +87,7 @@ export default function LaporanPage() {
         <CardHeader className="pb-2"><CardTitle className="text-lg font-bold">Filter</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 items-center">
-            <Select value={filter.kategori || 'all'} onValueChange={val => setFilter(f => ({ ...f, kategori: val === 'all' ? undefined : val }))}>
+            <Select value={filter.kategori || 'all'} onValueChange={val => setFilter((f: any) => ({ ...f, kategori: val === 'all' ? undefined : val }))}>
               <SelectTrigger className="w-[160px] bg-gray-50 border rounded-lg px-3 py-2"><SelectValue placeholder="Kategori Barang" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Kategori</SelectItem>
@@ -95,7 +96,7 @@ export default function LaporanPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filter.merek || 'all'} onValueChange={val => setFilter(f => ({ ...f, merek: val === 'all' ? undefined : val }))}>
+            <Select value={filter.merek || 'all'} onValueChange={val => setFilter((f: any) => ({ ...f, merek: val === 'all' ? undefined : val }))}>
               <SelectTrigger className="w-[160px] bg-gray-50 border rounded-lg px-3 py-2"><SelectValue placeholder="Merek" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Merek</SelectItem>
@@ -104,7 +105,7 @@ export default function LaporanPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filter.barang || 'all'} onValueChange={val => setFilter(f => ({ ...f, barang: val === 'all' ? undefined : val }))}>
+            <Select value={filter.barang || 'all'} onValueChange={val => setFilter((f: any) => ({ ...f, barang: val === 'all' ? undefined : val }))}>
               <SelectTrigger className="w-[160px] bg-gray-50 border rounded-lg px-3 py-2"><SelectValue placeholder="Nama Barang" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Barang</SelectItem>

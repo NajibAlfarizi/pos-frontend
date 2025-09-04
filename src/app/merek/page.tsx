@@ -10,7 +10,7 @@ import {
   getKategoriBarangByMerek,
   searchMerek
 } from "@/lib/api/merekHelper";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "@/components/ui/pagination";
 import { apiWithRefresh } from "@/lib/api/authHelper";
 import { useRouter } from "next/navigation";
 
