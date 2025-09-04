@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const getAllKategoriBarang = async (token: string): Promise<any> => {
   const res = await axios.get(`${API_URL}/kategori-barang`, {

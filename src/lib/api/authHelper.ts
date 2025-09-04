@@ -5,7 +5,7 @@
 
 import axios from 'axios';
 
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Login user (owner/kasir)
 export async function login(email: string, password: string) {
