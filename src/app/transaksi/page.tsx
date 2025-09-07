@@ -156,17 +156,18 @@ export default function TransaksiPage() {
     }
   };
 
+
   // Modal tambah transaksi
-  // Hitung harga total otomatis
+  // Hitung harga total otomatis sesuai logic backend
   const getHargaTotal = () => {
     const sparepart = sparepartList.find(sp => sp.id_sparepart === formBarang);
     if (!sparepart || formJumlah <= 0) return 0;
     if (formTipe === "masuk") {
-      // uang masuk, barang keluar, harga jual
-      return formJumlah * (sparepart.harga_jual ?? 0);
-    } else {
-      // uang keluar, barang masuk, harga modal
+      // Barang masuk, harga total = harga_modal x jumlah
       return formJumlah * (sparepart.harga_modal ?? 0);
+    } else {
+      // Barang keluar, harga total = harga jual x jumlah
+      return formJumlah * (sparepart.harga_jual ?? 0);
     }
   };
 
