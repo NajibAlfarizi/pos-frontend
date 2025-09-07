@@ -100,9 +100,16 @@ export default function TransaksiPage() {
     try {
       const sendFilters = { ...filters };
       if (sendFilters.tipe === "all") delete sendFilters.tipe;
-      // Kirim filter tanggal jika ada
-      if (filterDari) sendFilters.dari = filterDari;
-      if (filterSampai) sendFilters.sampai = filterSampai;
+      // Kirim filter tanggal ke backend
+      if (filterDari) sendFilters.tanggal_mulai = filterDari;
+      if (filterSampai) {
+        // Pastikan tanggal_selesai mencakup seluruh hari (jam 23:59:59)
+        const endDate = new Date(filterSampai);
+        endDate.setHours(23, 59, 59, 999);
+        // Format ke yyyy-MM-ddTHH:mm:ss agar backend tetap bisa filter
+        const formattedEnd = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}T23:59:59`;
+        sendFilters.tanggal_selesai = formattedEnd;
+      }
       // Kirim filter kategori jika ada
       if (filterKategori) sendFilters.kategori = filterKategori;
       const res = await apiWithRefresh(
@@ -298,43 +305,61 @@ export default function TransaksiPage() {
       {/* Tabel */}
       <Card className="bg-white rounded shadow border mt-2">
         <CardContent>
-          <div className="w-full">
-            <Table className="w-full text-xs">
-              <TableHeader>
-                <TableRow className="bg-gray-200 border-b-2 border-gray-300">
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-6">No</TableHead>
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-16">Tanggal</TableHead>
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-20">Barang</TableHead>
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-14">Kategori</TableHead>
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-8">Jml</TableHead>
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-16">Total</TableHead>
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-10">Tipe</TableHead>
-                  <TableHead className="px-0.5 py-0.5 text-center font-bold w-20">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.map((trx, idx) => (
-                  <TableRow key={trx.id_transaksi} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <TableCell className="px-0.5 py-0.5 text-center">{(page - 1) * limit + idx + 1}</TableCell>
-                    <TableCell className="px-0.5 py-0.5 text-center">{new Date(trx.tanggal).toLocaleDateString()}</TableCell>
-                    <TableCell className="px-0.5 py-0.5 text-center truncate max-w-[70px]">{trx.sparepart?.nama_barang || "-"}</TableCell>
-                    <TableCell className="px-0.5 py-0.5 text-center truncate max-w-[50px]">{trx.sparepart?.kategori || "-"}</TableCell>
-                    <TableCell className="px-0.5 py-0.5 text-center">{trx.jumlah}</TableCell>
-                    <TableCell className="px-0.5 py-0.5 text-center">Rp {trx.harga_total.toLocaleString()}</TableCell>
-                    <TableCell className="px-0.5 py-0.5 text-center">
-                      <span className={`px-1 py-0.5 rounded text-white text-[10px] ${trx.tipe === "masuk" ? "bg-green-500" : "bg-red-500"}`}>
-                        {trx.tipe}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-0.5 py-0.5 text-center flex gap-0.5 flex-wrap justify-center">
-                      <Button size="sm" variant="outline" className="text-blue-600 px-1 py-0.5 rounded hover:bg-blue-100 min-w-[32px]" onClick={() => { setSelected(trx); setOpenDetail(true); }}>Lihat</Button>
-                      <Button size="sm" variant="outline" className="text-gray-600 px-1 py-0.5 rounded hover:bg-gray-100 min-w-[32px]" onClick={() => { setSelected(trx); setOpenForm(true); }}>Edit</Button>
-                      <Button size="sm" variant="destructive" className="text-white px-1 py-0.5 rounded hover:bg-red-100 min-w-[32px]" onClick={() => handleDelete(trx.id_transaksi)}>Hapus</Button>
-                    </TableCell>
+          <div className="w-full min-h-[120px] flex items-center justify-center">
+            {loading ? (
+              <div className="w-full flex items-center justify-center py-8">
+                <span className="text-gray-500 text-sm">Loading data transaksi...</span>
+              </div>
+            ) : data.length === 0 ? (
+              <div className="w-full flex items-center justify-center py-8">
+                <span className="text-gray-500 text-sm">Belum ada data transaksi.</span>
+              </div>
+            ) : (
+              <Table className="w-full text-xs">
+                <TableHeader>
+                  <TableRow className="bg-gray-200 border-b-2 border-gray-300">
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-6">No</TableHead>
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-16">Tanggal</TableHead>
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-20">Barang</TableHead>
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-14">Kategori</TableHead>
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-8">Jml</TableHead>
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-16">Total</TableHead>
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-10">Tipe</TableHead>
+                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-20">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {data.map((trx, idx) => (
+                    <TableRow key={trx.id_transaksi} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <TableCell className="px-0.5 py-0.5 text-center">{(page - 1) * limit + idx + 1}</TableCell>
+                      <TableCell className="px-0.5 py-0.5 text-center">{
+                        (() => {
+                          const d = new Date(trx.tanggal);
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const month = String(d.getMonth() + 1).padStart(2, '0');
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()
+                      }</TableCell>
+                      <TableCell className="px-0.5 py-0.5 text-center truncate max-w-[70px]">{trx.sparepart?.nama_barang || "-"}</TableCell>
+                      <TableCell className="px-0.5 py-0.5 text-center truncate max-w-[50px]">{trx.sparepart?.kategori || "-"}</TableCell>
+                      <TableCell className="px-0.5 py-0.5 text-center">{trx.jumlah}</TableCell>
+                      <TableCell className="px-0.5 py-0.5 text-center">Rp {trx.harga_total.toLocaleString()}</TableCell>
+                      <TableCell className="px-0.5 py-0.5 text-center">
+                        <span className={`px-1 py-0.5 rounded text-white text-[10px] ${trx.tipe === "masuk" ? "bg-green-500" : "bg-red-500"}`}>
+                          {trx.tipe}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-0.5 py-0.5 text-center flex gap-0.5 flex-wrap justify-center">
+                        <Button size="sm" variant="outline" className="text-blue-600 px-1 py-0.5 rounded hover:bg-blue-100 min-w-[32px]" onClick={() => { setSelected(trx); setOpenDetail(true); }}>Lihat</Button>
+                        <Button size="sm" variant="outline" className="text-gray-600 px-1 py-0.5 rounded hover:bg-gray-100 min-w-[32px]" onClick={() => { setSelected(trx); setOpenForm(true); }}>Edit</Button>
+                        <Button size="sm" variant="destructive" className="text-white px-1 py-0.5 rounded hover:bg-red-100 min-w-[32px]" onClick={() => handleDelete(trx.id_transaksi)}>Hapus</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
           {/* Pagination */}
           <div className="flex flex-wrap justify-between items-center mt-2 gap-2">
