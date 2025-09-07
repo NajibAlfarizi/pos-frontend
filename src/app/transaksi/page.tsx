@@ -360,7 +360,7 @@ export default function TransaksiPage() {
                         </span>
                       </TableCell>
                       <TableCell className="px-0.5 py-0.5 text-center flex gap-0.5 flex-wrap justify-center">
-                        <Button size="sm" variant="outline" className="text-blue-600 px-1 py-0.5 rounded hover:bg-blue-100 min-w-[32px]" onClick={() => { setSelected(trx); setOpenDetail(true); }}>Lihat</Button>
+                        <Button size="sm" variant="outline" className="text-blue-600 px-1 py-0.5 rounded hover:bg-blue-100 min-w-[32px]" onClick={() => { setFakturData({ ...trx }); setOpenFakturPreview(true); }}>Lihat</Button>
                         <Button size="sm" variant="outline" className="text-gray-600 px-1 py-0.5 rounded hover:bg-gray-100 min-w-[32px]" onClick={() => { setSelected(trx); setOpenForm(true); }}>Edit</Button>
                         <Button size="sm" variant="destructive" className="text-white px-1 py-0.5 rounded hover:bg-red-100 min-w-[32px]" onClick={() => handleDelete(trx.id_transaksi)}>Hapus</Button>
                       </TableCell>
@@ -502,6 +502,39 @@ export default function TransaksiPage() {
           <DialogHeader><DialogTitle>Preview Faktur</DialogTitle></DialogHeader>
           {fakturData && (
             <div id="faktur-area" className="bg-white p-6 rounded shadow border mb-4 text-black text-[13px] font-sans">
+              {/* Print style for faktur */}
+              <style>{`
+                @media print {
+                  body { margin: 0; }
+                  #faktur-area {
+                    background: white !important;
+                    color: black !important;
+                    font-family: sans-serif !important;
+                    font-size: 13px !important;
+                    box-shadow: none !important;
+                    border: 1px solid #ccc !important;
+                    margin: 0 !important;
+                    padding: 24px !important;
+                    width: 100% !important;
+                  }
+                  #faktur-area table {
+                    border-collapse: collapse !important;
+                    width: 100% !important;
+                  }
+                  #faktur-area th, #faktur-area td {
+                    border: 1px solid #888 !important;
+                    padding: 4px 8px !important;
+                  }
+                  #faktur-area .text-center { text-align: center !important; }
+                  #faktur-area .text-right { text-align: right !important; }
+                  #faktur-area .font-bold { font-weight: bold !important; }
+                  #faktur-area .font-semibold { font-weight: 600 !important; }
+                  #faktur-area .text-xs { font-size: 12px !important; }
+                  #faktur-area .mb-2 { margin-bottom: 8px !important; }
+                  #faktur-area .mt-8 { margin-top: 32px !important; }
+                  #faktur-area hr { border: none; border-top: 1px solid #888 !important; margin: 8px 0 !important; }
+                }
+              `}</style>
               {/* Header toko */}
                 <div className="text-center mb-2">
                   <div className="font-bold text-lg">Chicha Mobile</div>
@@ -523,7 +556,7 @@ export default function TransaksiPage() {
                     <th className="border px-2 py-1">No.</th>
                     <th className="border px-2 py-1">Nama Barang</th>
                     <th className="border px-2 py-1">Qty</th>
-                    <th className="border px-2 py-1">Kode Barang</th>
+                    <th className="border px-2 py-1">Kategori Barang</th>
                     <th className="border px-2 py-1">Harga</th>
                     <th className="border px-2 py-1">Subtotal</th>
                   </tr>
@@ -533,7 +566,7 @@ export default function TransaksiPage() {
                     <td className="border px-2 py-1 text-center">1</td>
                     <td className="border px-2 py-1">{fakturData.sparepart?.nama_barang || '-'}</td>
                     <td className="border px-2 py-1 text-center">{fakturData.jumlah}</td>
-                    <td className="border px-2 py-1 text-center">-</td>
+                    <td className="border px-2 py-1 text-center">{fakturData.sparepart?.kategori || '-'}</td>
                     <td className="border px-2 py-1 text-right">{(fakturData.harga_total / fakturData.jumlah).toLocaleString()}</td>
                     <td className="border px-2 py-1 text-right">{fakturData.harga_total.toLocaleString()}</td>
                   </tr>
@@ -550,8 +583,6 @@ export default function TransaksiPage() {
                     </table>
                   </div>
                 </div>
-              {/* Catatan */}
-              <div className="text-xs mb-2"><b>Catatan:</b> {fakturData.keterangan || '-'}</div>
                 {/* Tertanda toko */}
                 <div className="mt-8 text-right font-semibold">Tertanda Chicha Mobile</div>
             </div>
@@ -559,17 +590,77 @@ export default function TransaksiPage() {
           <div className="flex gap-2 justify-end mt-2">
             <Button variant="ghost" onClick={() => setOpenFakturPreview(false)}>Tutup</Button>
             <Button onClick={() => {
-              // Print hanya area faktur
-              const printContents = document.getElementById('faktur-area')?.innerHTML;
-              const win = window.open('', '', 'height=600,width=800');
-              if (win && printContents) {
-                win.document.write('<html><head><title>Faktur</title></head><body>' + printContents + '</body></html>');
-                win.document.close();
-                win.focus();
-                win.print();
-                win.close();
-              }
-            }}>Cetak</Button>
+  if (!fakturData) return;
+  const style = `
+    <style>
+      @media print {
+        body { margin:0; font-family:monospace,sans-serif; font-size:10px; color:#222; }
+        .faktur-termal { width:58mm; min-width:58mm; max-width:58mm; margin:0 auto; background:white; }
+        .faktur-header { text-align:center; margin-bottom:4px; }
+        .faktur-title { font-weight:bold; font-size:13px; }
+        .faktur-alamat { font-size:9px; }
+        hr { border:none; border-top:1px dashed #888; margin:4px 0; }
+        .faktur-info { margin-bottom:4px; font-size:10px; }
+        .faktur-info-right { text-align:left; }
+        .faktur-table { width:100%; border-collapse:collapse; font-size:10px; margin-bottom:4px; }
+        .faktur-table th, .faktur-table td { border:none; padding:2px 2px; }
+        .faktur-table th { font-weight:bold; }
+        .text-center { text-align:center; }
+        .text-right { text-align:right; }
+        .font-bold { font-weight:bold; }
+        .font-semibold { font-weight:600; }
+        .text-xs { font-size:9px; }
+        .mb-2 { margin-bottom:4px; }
+        .mt-8 { margin-top:16px; }
+      }
+    </style>
+  `;
+  const fakturHtml = `
+    <div class="faktur-termal">
+      <div class="faktur-header">
+        <div class="faktur-title">Chicha Mobile</div>
+        <div class="faktur-alamat">Jl.Bahder Johan, Kota Padang Panjang</div>
+      </div>
+      <hr />
+      <div class="faktur-info faktur-info-right">
+        <div><span class="font-bold">Tanggal:</span> ${(() => { const d = new Date(fakturData.tanggal); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth()+1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })()}</div>
+        <div><span class="font-bold">No. Faktur:</span> ${fakturData.id_transaksi}</div>
+      </div>
+      <table class="faktur-table">
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>Nama</th>
+            <th>Qty</th>
+            <th>Kat</th>
+            <th>Harga</th>
+            <th>Sub</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-center">1</td>
+            <td>${fakturData.sparepart?.nama_barang || '-'}</td>
+            <td class="text-center">${fakturData.jumlah}</td>
+            <td class="text-center">${fakturData.sparepart?.kategori || '-'}</td>
+            <td class="text-right">${(fakturData.harga_total / fakturData.jumlah).toLocaleString()}</td>
+            <td class="text-right">${fakturData.harga_total.toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="mb-2 font-bold text-right">TOTAL ${fakturData.harga_total.toLocaleString()}</div>
+      <div class="mt-8 text-right font-semibold">Tertanda Chicha Mobile</div>
+    </div>
+  `;
+  const win = window.open('', '', 'height=600,width=400');
+  if (win) {
+    win.document.write('<html><head><title>Faktur</title>' + style + '</head><body>' + fakturHtml + '</body></html>');
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  }
+}}>Faktur</Button>
           </div>
         </DialogContent>
       </Dialog>
