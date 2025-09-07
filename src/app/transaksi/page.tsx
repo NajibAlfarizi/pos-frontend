@@ -57,6 +57,9 @@ export default function TransaksiPage() {
   const [openRingkasan, setOpenRingkasan] = useState(false);
   const [selected, setSelected] = useState<Transaksi | null>(null);
   const [ringkasan, setRingkasan] = useState<any>(null);
+  // Faktur preview
+  const [openFakturPreview, setOpenFakturPreview] = useState(false);
+  const [fakturData, setFakturData] = useState<Transaksi | null>(null);
   const [token, setToken] = useState<string>("");
   const [sparepartList, setSparepartList] = useState<any[]>([]);
   const router = useRouter();
@@ -186,7 +189,7 @@ export default function TransaksiPage() {
     }
     const harga_total = getHargaTotal();
     try {
-      await apiWithRefresh(
+      const trx = await apiWithRefresh(
         (tok) => addTransaksi(tok, {
           id_sparepart: formBarang,
           jumlah: formJumlah,
@@ -206,6 +209,12 @@ export default function TransaksiPage() {
       setFormKeterangan("");
       setFormTipe("masuk");
       fetchData();
+      // Set faktur data dan buka preview
+      setFakturData({
+        ...trx,
+        sparepart: sparepartList.find(sp => sp.id_sparepart === formBarang) || null
+      });
+      setOpenFakturPreview(true);
     } catch {
       toast.error("Gagal tambah transaksi");
     }
@@ -483,6 +492,85 @@ export default function TransaksiPage() {
               <p><b>Tipe:</b> {selected.tipe}</p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+
+      {/* Modal Faktur Preview & Cetak - Desain mirip gambar */}
+      <Dialog open={openFakturPreview} onOpenChange={setOpenFakturPreview}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Preview Faktur</DialogTitle></DialogHeader>
+          {fakturData && (
+            <div id="faktur-area" className="bg-white p-6 rounded shadow border mb-4 text-black text-[13px] font-sans">
+              {/* Header toko */}
+                <div className="text-center mb-2">
+                  <div className="font-bold text-lg">Chicha Mobile</div>
+                  <div className="text-xs">Jl.Bahder Johan, Kota Padang Panjang</div>
+                </div>
+              <hr className="my-2" />
+                {/* Info faktur */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div></div>
+                  <div>
+                    <div><b>Tanggal</b>: {(() => { const d = new Date(fakturData.tanggal); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth()+1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })()}</div>
+                    <div><b>No. Faktur</b>: {fakturData.id_transaksi}</div>
+                  </div>
+                </div>
+              {/* Tabel barang */}
+              <table className="w-full border text-xs mb-2" style={{ borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-2 py-1">No.</th>
+                    <th className="border px-2 py-1">Nama Barang</th>
+                    <th className="border px-2 py-1">Qty</th>
+                    <th className="border px-2 py-1">Kode Barang</th>
+                    <th className="border px-2 py-1">Harga</th>
+                    <th className="border px-2 py-1">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border px-2 py-1 text-center">1</td>
+                    <td className="border px-2 py-1">{fakturData.sparepart?.nama_barang || '-'}</td>
+                    <td className="border px-2 py-1 text-center">{fakturData.jumlah}</td>
+                    <td className="border px-2 py-1 text-center">-</td>
+                    <td className="border px-2 py-1 text-right">{(fakturData.harga_total / fakturData.jumlah).toLocaleString()}</td>
+                    <td className="border px-2 py-1 text-right">{fakturData.harga_total.toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
+                {/* Total harga */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div></div>
+                  <div>
+                    <table className="w-full text-xs">
+                      <tbody>
+                        <tr className="font-bold"><td className="pr-2">TOTAL</td><td className="text-right">{fakturData.harga_total.toLocaleString()}</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {/* Catatan */}
+              <div className="text-xs mb-2"><b>Catatan:</b> {fakturData.keterangan || '-'}</div>
+                {/* Tertanda toko */}
+                <div className="mt-8 text-right font-semibold">Tertanda Chicha Mobile</div>
+            </div>
+          )}
+          <div className="flex gap-2 justify-end mt-2">
+            <Button variant="ghost" onClick={() => setOpenFakturPreview(false)}>Tutup</Button>
+            <Button onClick={() => {
+              // Print hanya area faktur
+              const printContents = document.getElementById('faktur-area')?.innerHTML;
+              const win = window.open('', '', 'height=600,width=800');
+              if (win && printContents) {
+                win.document.write('<html><head><title>Faktur</title></head><body>' + printContents + '</body></html>');
+                win.document.close();
+                win.focus();
+                win.print();
+                win.close();
+              }
+            }}>Cetak</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
