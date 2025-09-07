@@ -358,18 +358,47 @@ export default function TransaksiPage() {
           >
             <div>
               <label className="block mb-1 font-semibold">Barang</label>
-              <Select value={formBarang} onValueChange={setFormBarang}>
-                <SelectTrigger><SelectValue placeholder="Pilih Barang" /></SelectTrigger>
-                <SelectContent>
-                  {sparepartList.map(sp => (
-                    <SelectItem key={sp.id_sparepart} value={sp.id_sparepart}>{sp.nama_barang}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Cari nama barang..."
+                  value={formBarang ? (sparepartList.find(sp => sp.id_sparepart === formBarang)?.nama_barang || formBarang) : ''}
+                  onChange={e => {
+                    setFormBarang(e.target.value);
+                  }}
+                  autoComplete="off"
+                />
+                {/* Suggestion dropdown */}
+                {formBarang && formBarang.length > 0 && (
+                  <div className="absolute z-10 bg-white border rounded shadow w-full max-h-40 overflow-auto">
+                    {sparepartList
+                      .filter(sp => sp.nama_barang.toLowerCase().includes(formBarang.toLowerCase()))
+                      .map(sp => (
+                        <div
+                          key={sp.id_sparepart}
+                          className="px-3 py-2 cursor-pointer hover:bg-blue-100"
+                          onClick={() => setFormBarang(sp.id_sparepart)}
+                        >
+                          {sp.nama_barang}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block mb-1 font-semibold">Jumlah</label>
-              <Input type="number" min={1} value={formJumlah} onChange={e => setFormJumlah(Number(e.target.value))} required />
+              <Input
+                type="number"
+                min={1}
+                value={formJumlah === 0 ? '' : formJumlah}
+                onChange={e => {
+                  // Hilangkan leading zero
+                  const val = e.target.value.replace(/^0+/, '');
+                  setFormJumlah(val === '' ? 0 : Number(val));
+                }}
+                required
+              />
             </div>
             <div>
               <label className="block mb-1 font-semibold">Tipe</label>
