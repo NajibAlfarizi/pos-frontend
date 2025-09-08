@@ -79,3 +79,13 @@ export async function apiWithRefresh(
 }
 }
 
+// Change password
+export async function changePassword(user_id: string, email: string, old_password: string, new_password: string) {
+  const res = await axios.post(`${API_URL}/auth/change-password`, {
+    user_id,
+    email,
+    old_password,
+    new_password
+  });
+  return res.data;
+}
