@@ -3,11 +3,14 @@
 import { LogOut, Menu, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getProfile } from "@/lib/api/authHelper";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<{ name?: string; email?: string; role?: string } | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -58,9 +61,17 @@ export default function Navbar() {
           </button>
 
           {open && (
-            <div className="absolute right-0 mt-2 w-44 shadow-lg rounded-xl py-2 ">
-              <button className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 text-red-600 rounded-lg bg-white">
-                <LogOut className="w-4 h-4" /> Logout
+            <div className="absolute right-0 mt-2 w-52 shadow-2xl rounded-xl py-3 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 flex flex-col gap-2 animate-fadeIn">
+              <div className="px-4 py-2 border-b text-xs text-gray-500 dark:text-gray-400 mb-2">Akun: <span className="font-semibold text-gray-700 dark:text-white">{profile?.email || '-'}</span></div>
+              <button
+                className="w-full px-4 py-2 text-left text-base flex items-center gap-2 text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900 font-semibold transition"
+                onClick={() => {
+                  localStorage.removeItem("user");
+                  toast.success("Berhasil logout. Silakan login kembali.");
+                  router.replace("/login");
+                }}
+              >
+                <LogOut className="w-5 h-5" /> Logout
               </button>
             </div>
           )}
