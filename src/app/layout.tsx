@@ -26,9 +26,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white`}>
         <Toaster position="top-right" />
         {!hideNav && <Navbar />}
-        <div className="flex min-h-screen">
+        <div className={hideNav ? "min-h-screen" : "flex min-h-screen"}>
           {!hideNav && <Sidebar />}
-          <main className={`flex-1 pt-14 md:pt-16 ${!hideNav ? 'md:ml-64' : ''}`}>{children}</main>
+          <main className={hideNav ? "flex-1" : "flex-1 pt-14 md:pt-16 md:ml-64"}>{children}</main>
         </div>
         {!hideNav && <BottomNavbar />}
       </body>

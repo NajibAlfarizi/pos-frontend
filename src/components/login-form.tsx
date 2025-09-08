@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api/authHelper";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ export function LoginForm(props: React.ComponentProps<"div">) {
   const { className, ...rest } = props;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -56,7 +58,7 @@ export function LoginForm(props: React.ComponentProps<"div">) {
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-4xl font-bold">Welcome back</h1>
                 <p className="text-muted-foreground text-balance">
-                  Login to your POS account
+                  Silahkan Masuk menggunakan Email dan Password Anda.
                 </p>
               </div>
               <div className="grid gap-3">  
@@ -72,17 +74,27 @@ export function LoginForm(props: React.ComponentProps<"div">) {
                 />
               </div>
               <div className="grid gap-3">
-                <div className="flex items-center">
+                <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                    onClick={() => setShowPassword(v => !v)}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Loading..." : "Login"}
@@ -100,9 +112,8 @@ export function LoginForm(props: React.ComponentProps<"div">) {
           </div>
         </CardContent>
       </Card>
-  <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 mt-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+      <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 mt-4">
+        Aplikasi Manajemen Transaksi dan Inventori Sparepart Ini Masih Dalam Tahap Pengembangan. Silakan Gunakan Dengan Bijak.
       </div>
     </div>
   );
