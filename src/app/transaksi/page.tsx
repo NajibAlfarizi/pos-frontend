@@ -24,6 +24,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { getAllSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
+import { FileText, PlusCircle, BarChart3, Calendar, Search } from "lucide-react";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 interface Transaksi {
   id_transaksi: string;
@@ -37,6 +39,17 @@ interface Transaksi {
 }
 
 export default function TransaksiPage() {
+  // Konfirmasi hapus
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteId, setDeleteId] = useState<string>("");
+  // State untuk modal edit
+  const [openEditForm, setOpenEditForm] = useState(false);
+  const [editBarang, setEditBarang] = useState<string>("");
+  const [editJumlah, setEditJumlah] = useState<number>(1);
+  const [editKeterangan, setEditKeterangan] = useState<string>("");
+  const [editTipe, setEditTipe] = useState<string>("masuk");
+  const [editId, setEditId] = useState<string>("");
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [data, setData] = useState<Transaksi[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -62,6 +75,16 @@ export default function TransaksiPage() {
   const [fakturData, setFakturData] = useState<Transaksi | null>(null);
   const [token, setToken] = useState<string>("");
   const [sparepartList, setSparepartList] = useState<any[]>([]);
+  const [showExport, setShowExport] = useState(false);
+  // State untuk autocomplete barang filter
+  const [filterBarangQuery, setFilterBarangQuery] = useState("");
+  const filteredBarangFilter = filterBarangQuery.trim() === ""
+    ? sparepartList
+    : sparepartList.filter(sp =>
+        sp.nama_barang.toLowerCase().includes(filterBarangQuery.toLowerCase())
+      );
+  // State untuk date range picker
+  const [dateRange, setDateRange] = useState<{from: string, to: string}>({from: "", to: ""});
   const router = useRouter();
   // Fetch sparepart & kategori list for filter dropdown
   useEffect(() => {
@@ -160,9 +183,67 @@ export default function TransaksiPage() {
         router
       );
       toast.success("Transaksi dihapus");
+      setShowDeleteConfirm(false);
+      setDeleteId("");
       fetchData();
     } catch {
       toast.error("Gagal menghapus transaksi");
+    }
+  };
+
+  // Handler untuk buka modal edit dan isi data
+  const openEditModal = (trx: Transaksi) => {
+    setEditId(trx.id_transaksi);
+    setEditBarang(trx.sparepart?.nama_barang ? (sparepartList.find(sp => sp.nama_barang === trx.sparepart?.nama_barang)?.id_sparepart || "") : "");
+    setEditJumlah(trx.jumlah);
+    setEditKeterangan(trx.keterangan || "");
+    setEditTipe(trx.tipe);
+    setOpenEditForm(true);
+  };
+
+  // Hitung harga total edit
+  const getEditHargaTotal = () => {
+    const sparepart = sparepartList.find(sp => sp.id_sparepart === editBarang);
+    if (!sparepart || editJumlah <= 0) return 0;
+    if (editTipe === "masuk") {
+      return editJumlah * (sparepart.harga_modal ?? 0);
+    } else {
+      return editJumlah * (sparepart.harga_jual ?? 0);
+    }
+  };
+
+  // Handler update transaksi
+  const handleEditTransaksi = async () => {
+    setShowEditConfirm(false);
+    if (!editBarang || editJumlah <= 0 || !editTipe) {
+      toast.error("Barang, jumlah, dan tipe wajib diisi");
+      return;
+    }
+    const harga_total = getEditHargaTotal();
+    try {
+      await apiWithRefresh(
+        (tok) => updateTransaksi(tok, editId, {
+          id_sparepart: editBarang,
+          jumlah: editJumlah,
+          tipe: editTipe,
+          harga_total,
+          keterangan: editKeterangan,
+        }),
+        token,
+        setToken,
+        () => {},
+        router
+      );
+      toast.success("Transaksi berhasil diupdate");
+      setOpenEditForm(false);
+      setEditBarang("");
+      setEditJumlah(1);
+      setEditKeterangan("");
+      setEditTipe("masuk");
+      setEditId("");
+      fetchData();
+    } catch {
+      toast.error("Gagal update transaksi");
     }
   };
 
@@ -241,176 +322,358 @@ export default function TransaksiPage() {
     }
   };
 
+  // Integrasi dateRange ke filter
+  useEffect(() => {
+    setFilterDari(dateRange.from);
+    setFilterSampai(dateRange.to);
+  }, [dateRange]);
+
   return (
-  <div className="max-w-5xl mx-auto py-8 px-2 space-y-4 bg-white">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
-        <h1 className="text-2xl font-bold bg-white px-6 py-2 rounded-xl shadow-lg border border-gray-200">Manajemen Transaksi</h1>
-        <div className="flex gap-2">
-          <Button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={() => setOpenForm(true)}>
-            Tambah Transaksi
-          </Button>
-          <Button variant="outline" className="bg-white text-black font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100" onClick={() => handleExport("csv")}>Export CSV</Button>
-          <Button variant="outline" className="bg-white text-black font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100" onClick={() => handleExport("excel")}>Export Excel</Button>
-          <Button variant="secondary" className="bg-white text-black font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100" onClick={() => { setOpenRingkasan(true); fetchRingkasan(); }}>Ringkasan</Button>
+    <div className="max-w-5xl mx-auto py-8 px-2 space-y-4 bg-white">
+      {/* Header & Sticky Action Bar */}
+      <div className="sticky top-0 z-20 bg-white pb-2 mb-2 shadow-sm border-b border-gray-200">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <FileText size={24} className="text-blue-600" />
+            <h1 className="text-2xl font-bold bg-white px-2 py-2 rounded-xl">Manajemen Transaksi</h1>
+          </div>
+          <div className="flex gap-2 items-center">
+            <Button className="bg-blue-600 text-white px-4 py-2 rounded flex gap-2 items-center font-bold shadow" onClick={() => setOpenForm(true)}>
+              <PlusCircle size={18} /> Tambah Transaksi
+            </Button>
+            {/* Export Dropdown */}
+            <div className="relative">
+              <Button variant="outline" className="bg-white text-black font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100 flex gap-2 items-center" onClick={() => setShowExport(!showExport)}>
+                <FileText size={16} /> Export
+              </Button>
+              {showExport && (
+                <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-30">
+                  <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("csv"); }}>Export CSV</button>
+                  <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("excel"); }}>Export Excel</button>
+                </div>
+              )}
+            </div>
+            {/* Ringkasan Card */}
+            {ringkasan && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex flex-col items-end min-w-[140px]">
+                <div className="flex items-center gap-1 text-blue-700 font-bold"><BarChart3 size={16}/> Ringkasan</div>
+                <div className="text-xs text-gray-700">Total: <span className="font-bold">Rp {ringkasan.total_transaksi.toLocaleString()}</span></div>
+                <div className="text-xs text-gray-700">Cashflow: <span className="font-bold">Rp {ringkasan.cashflow.toLocaleString()}</span></div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Filter - desain modern & logic tanggal fix */}
-  <Card className="shadow-md border rounded-xl bg-white">
-  <CardHeader className="pb-2"><CardTitle className="text-lg font-bold">Filter</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex gap-3 flex-1 min-w-0">
-              <Select value={filterKategori || 'all'} onValueChange={val => setFilterKategori(val === 'all' ? '' : val)}>
-                <SelectTrigger className="w-[160px] bg-gray-50 border rounded-lg px-3 py-2"><SelectValue placeholder="Kategori Barang" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kategori</SelectItem>
-                  {kategoriList.map(kat => (
-                    <SelectItem key={kat.id_kategori_barang} value={kat.id_kategori_barang}>{kat.nama_kategori}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filters.tipe || ""} onValueChange={val => setFilters({ ...filters, tipe: val })}>
-                <SelectTrigger className="w-[120px] bg-gray-50 border rounded-lg px-3 py-2"><SelectValue placeholder="Tipe" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua</SelectItem>
-                  <SelectItem value="masuk">Masuk</SelectItem>
-                  <SelectItem value="keluar">Keluar</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filters.id_sparepart || ""} onValueChange={val => setFilters({ ...filters, id_sparepart: val === 'all' ? undefined : val })}>
-                <SelectTrigger className="w-[160px] bg-gray-50 border rounded-lg px-3 py-2"><SelectValue placeholder="Nama Barang" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Barang</SelectItem>
-                  {sparepartList.map(sp => (
-                    <SelectItem key={sp.id_sparepart} value={sp.id_sparepart}>{sp.nama_barang}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                className="w-[140px] bg-gray-50 border rounded-lg px-3 py-2"
-                value={filterDari}
-                onChange={e => setFilterDari(e.target.value)}
-                placeholder="Dari Tanggal"
-              />
-              <Input
-                type="date"
-                className="w-[140px] bg-gray-50 border rounded-lg px-3 py-2"
-                value={filterSampai}
-                onChange={e => setFilterSampai(e.target.value)}
-                placeholder="Sampai Tanggal"
-              />
-            </div>
-            <div className="flex gap-2 items-center">
-              <Button className="px-5 py-2 font-bold rounded-lg" onClick={() => fetchData()}>Terapkan</Button>
-              <Button variant="ghost" className="px-5 py-2 rounded-lg" onClick={() => { setFilters({}); setFilterDari(""); setFilterSampai(""); setPage(1); }}>Reset</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filter - modern design dengan DatePicker */}
+<Card className="shadow-md border rounded-xl bg-white">
+  <CardHeader className="pb-2">
+    <CardTitle className="text-lg font-bold">Filter</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <form
+      className="flex flex-wrap gap-3 items-center md:flex-row md:gap-3 sm:flex-col sm:gap-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        fetchData()
+      }}
+    >
+      {/* Kategori */}
+      <Select
+        value={filterKategori || "all"}
+        onValueChange={(val) => setFilterKategori(val === "all" ? "" : val)}
+      >
+        <SelectTrigger className="w-[160px] bg-gray-50 border rounded-lg px-3 py-2">
+          <SelectValue placeholder="Kategori Barang" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua Kategori</SelectItem>
+          {kategoriList.map((kat) => (
+            <SelectItem key={kat.id_kategori_barang} value={kat.id_kategori_barang}>
+              {kat.nama_kategori}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      {/* Tabel */}
-      <Card className="bg-white rounded shadow border mt-2">
-        <CardContent>
-          <div className="w-full min-h-[120px] flex items-center justify-center">
-            {loading ? (
-              <div className="w-full flex items-center justify-center py-8">
-                <span className="text-gray-500 text-sm">Loading data transaksi...</span>
-              </div>
-            ) : data.length === 0 ? (
-              <div className="w-full flex items-center justify-center py-8">
-                <span className="text-gray-500 text-sm">Belum ada data transaksi.</span>
-              </div>
+      {/* Tipe */}
+      <Select
+        value={filters.tipe || ""}
+        onValueChange={(val) => setFilters({ ...filters, tipe: val })}
+      >
+        <SelectTrigger className="w-[120px] bg-gray-50 border rounded-lg px-3 py-2">
+          <SelectValue placeholder="Tipe" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua</SelectItem>
+          <SelectItem value="masuk">Masuk</SelectItem>
+          <SelectItem value="keluar">Keluar</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Autocomplete Barang */}
+      <div className="relative w-[180px]">
+        <Input
+          type="text"
+          value={filterBarangQuery}
+          onChange={(e) => setFilterBarangQuery(e.target.value)}
+          placeholder="Cari barang..."
+          className="bg-gray-50 border rounded-lg px-3 py-2 pr-8"
+        />
+        <Search size={16} className="absolute right-2 top-2 text-gray-400" />
+        {filterBarangQuery && (
+          <div className="absolute z-10 bg-white border rounded shadow w-full max-h-40 overflow-auto mt-1">
+            {filteredBarangFilter.length === 0 ? (
+              <div className="px-3 py-2 text-gray-400">Barang tidak ditemukan</div>
             ) : (
-              <Table className="w-full text-xs">
-                <TableHeader>
-                  <TableRow className="bg-gray-200 border-b-2 border-gray-300">
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-6">No</TableHead>
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-16">Tanggal</TableHead>
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-20">Barang</TableHead>
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-14">Kategori</TableHead>
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-8">Jml</TableHead>
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-16">Total</TableHead>
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-10">Tipe</TableHead>
-                    <TableHead className="px-0.5 py-0.5 text-center font-bold w-20">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((trx, idx) => (
-                    <TableRow key={trx.id_transaksi} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <TableCell className="px-0.5 py-0.5 text-center">{(page - 1) * limit + idx + 1}</TableCell>
-                      <TableCell className="px-0.5 py-0.5 text-center">{
-                        (() => {
-                          const d = new Date(trx.tanggal);
-                          const day = String(d.getDate()).padStart(2, '0');
-                          const month = String(d.getMonth() + 1).padStart(2, '0');
-                          const year = d.getFullYear();
-                          return `${day}/${month}/${year}`;
-                        })()
-                      }</TableCell>
-                      <TableCell className="px-0.5 py-0.5 text-center truncate max-w-[70px]">{trx.sparepart?.nama_barang || "-"}</TableCell>
-                      <TableCell className="px-0.5 py-0.5 text-center truncate max-w-[50px]">{trx.sparepart?.kategori || "-"}</TableCell>
-                      <TableCell className="px-0.5 py-0.5 text-center">{trx.jumlah}</TableCell>
-                      <TableCell className="px-0.5 py-0.5 text-center">Rp {trx.harga_total.toLocaleString()}</TableCell>
-                      <TableCell className="px-0.5 py-0.5 text-center">
-                        <span className={`px-1 py-0.5 rounded text-white text-[10px] ${trx.tipe === "masuk" ? "bg-green-500" : "bg-red-500"}`}>
-                          {trx.tipe}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-0.5 py-0.5 text-center flex gap-0.5 flex-wrap justify-center">
-                        <Button size="sm" variant="outline" className="text-blue-600 px-1 py-0.5 rounded hover:bg-blue-100 min-w-[32px]" onClick={() => { setFakturData({ ...trx }); setOpenFakturPreview(true); }}>Lihat</Button>
-                        <Button size="sm" variant="outline" className="text-gray-600 px-1 py-0.5 rounded hover:bg-gray-100 min-w-[32px]" onClick={() => { setSelected(trx); setOpenForm(true); }}>Edit</Button>
-                        <Button size="sm" variant="destructive" className="text-white px-1 py-0.5 rounded hover:bg-red-100 min-w-[32px]" onClick={() => handleDelete(trx.id_transaksi)}>Hapus</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              filteredBarangFilter.map((sp) => (
+                <div
+                  key={sp.id_sparepart}
+                  className="px-3 py-2 cursor-pointer hover:bg-blue-100"
+                  onClick={() => {
+                    setFilters({ ...filters, id_sparepart: sp.id_sparepart })
+                    setFilterBarangQuery(sp.nama_barang)
+                  }}
+                >
+                  {sp.nama_barang}
+                </div>
+              ))
             )}
           </div>
-          {/* Pagination */}
-          <div className="flex flex-wrap justify-between items-center mt-2 gap-2">
-            <Button disabled={page === 1} className="bg-gray-100 text-gray-700 px-4 py-2 rounded" onClick={() => setPage(page - 1)}>Prev</Button>
-            <span className="font-semibold">Page {page}</span>
-            <Button disabled={page * limit >= total} className="bg-gray-100 text-gray-700 px-4 py-2 rounded" onClick={() => setPage(page + 1)}>Next</Button>
-          </div>
+        )}
+      </div>
+
+      {/* Date Range pakai DatePicker */}
+      <div className="flex items-center gap-2 w-[280px]">
+        <DatePicker
+          value={dateRange.from ? new Date(dateRange.from) : null}
+          onChange={(val: Date | null) =>
+            setDateRange({ ...dateRange, from: val?.toISOString().split("T")[0] || "" })
+          }
+          placeholder="Dari"
+        />
+        <span className="text-gray-500">-</span>
+        <DatePicker
+          value={dateRange.to ? new Date(dateRange.to) : null}
+          onChange={(val: Date | null) =>
+            setDateRange({ ...dateRange, to: val?.toISOString().split("T")[0] || "" })
+          }
+          placeholder="Sampai"
+        />
+      </div>
+
+      {/* Tombol Apply & Reset */}
+      <div className="flex gap-2 ml-auto">
+        <Button
+          type="submit"
+          size="sm"
+          className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold"
+        >
+          Apply
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="px-4 py-2 rounded-lg"
+          onClick={() => {
+            setFilters({})
+            setFilterKategori("")
+            setFilterBarangQuery("")
+            setDateRange({ from: "", to: "" })
+            setPage(1)
+          }}
+        >
+          Reset
+        </Button>
+      </div>
+    </form>
+  </CardContent>
+</Card>
+
+      {/* Tabel */}
+      <Card className="bg-white rounded-xl shadow border mt-3">
+        <CardContent>
+    {loading ? (
+      <div className="w-full flex items-center justify-center py-8">
+        <span className="text-gray-500 text-sm">Loading data transaksi...</span>
+      </div>
+    ) : data.length === 0 ? (
+      <div className="w-full flex items-center justify-center py-8">
+        <span className="text-gray-500 text-sm">Belum ada data transaksi.</span>
+      </div>
+    ) : (
+      <div className="overflow-x-auto">
+        <Table className="w-full text-sm border-collapse">
+          <TableHeader>
+            <TableRow className="bg-gray-100 border-b">
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-8">No</TableHead>
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-24">Tanggal</TableHead>
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-32">Barang</TableHead>
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-28">Kategori</TableHead>
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-16">Jml</TableHead>
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-28">Total</TableHead>
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-20">Tipe</TableHead>
+              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-28">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((trx, idx) => (
+              <TableRow
+                key={trx.id_transaksi}
+                className="hover:bg-gray-50 transition-colors"
+              >
+                <TableCell className="px-3 py-2 text-center">
+                  {(page - 1) * limit + idx + 1}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-center">
+                  {(() => {
+                    const d = new Date(trx.tanggal)
+                    return `${String(d.getDate()).padStart(2, "0")}/${String(
+                      d.getMonth() + 1
+                    ).padStart(2, "0")}/${d.getFullYear()}`
+                  })()}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-center truncate max-w-[120px]">
+                  {trx.sparepart?.nama_barang || "-"}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-center truncate max-w-[80px]">
+                  {trx.sparepart?.kategori || "-"}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-center">
+                  {trx.jumlah}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-center font-medium text-gray-700">
+                  Rp {trx.harga_total.toLocaleString()}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-center">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      trx.tipe === "masuk"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {trx.tipe}
+                  </span>
+                </TableCell>
+                <TableCell className="px-3 py-2 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-blue-600 px-2 py-1 hover:bg-blue-50"
+                      onClick={() => {
+                        setFakturData({ ...trx })
+                        setOpenFakturPreview(true)
+                      }}
+                    >
+                      Lihat
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-gray-600 px-2 py-1 hover:bg-gray-50"
+                      onClick={() => openEditModal(trx)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="px-2 py-1 hover:bg-red-600"
+                      onClick={() => {
+                        setDeleteId(trx.id_transaksi);
+                        setShowDeleteConfirm(true);
+                      }}
+                    >
+                      Hapus
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )}
+
+    {/* Pagination */}
+    <div className="flex justify-between items-center mt-4 px-2">
+      <Button
+        disabled={page === 1}
+        variant="outline"
+        size="sm"
+        onClick={() => setPage(page - 1)}
+      >
+        Prev
+      </Button>
+      <span className="text-sm font-medium text-gray-700">
+        Page {page}
+      </span>
+      <Button
+        disabled={page * limit >= total}
+        variant="outline"
+        size="sm"
+        onClick={() => setPage(page + 1)}
+      >
+        Next
+      </Button>
+    </div>
         </CardContent>
       </Card>
 
       {/* Modal Tambah Transaksi */}
+      {/* Modal Tambah Transaksi */}
       <Dialog open={openForm} onOpenChange={setOpenForm}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Tambah Transaksi</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-lg rounded-2xl shadow-xl">
+          <DialogHeader className="border-b pb-3">
+            <DialogTitle className="text-lg font-semibold text-gray-800">
+              Tambah Transaksi
+            </DialogTitle>
+            <p className="text-sm text-gray-500">
+              Lengkapi detail transaksi dengan benar sebelum menyimpan.
+            </p>
+          </DialogHeader>
           <form
-            className="space-y-4"
+            className="space-y-5 py-2"
             onSubmit={e => {
               e.preventDefault();
               setShowConfirm(true);
             }}
           >
-            <div>
-              <label className="block mb-1 font-semibold">Barang</label>
+            {/* Detail Barang */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Barang</label>
               <div className="relative">
                 <Input
                   type="text"
                   placeholder="Cari nama barang..."
-                  value={formBarang ? (sparepartList.find(sp => sp.id_sparepart === formBarang)?.nama_barang || formBarang) : ''}
+                  value={
+                    formBarang
+                      ? sparepartList.find(sp => sp.id_sparepart === formBarang)?.nama_barang || formBarang
+                      : ""
+                  }
                   onChange={e => {
                     setFormBarang(e.target.value);
                   }}
                   autoComplete="off"
+                  className="pr-10"
                 />
-                {/* Suggestion dropdown */}
+                <div className="absolute inset-y-0 right-2 flex items-center text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                </div>
                 {formBarang && formBarang.length > 0 && (
-                  <div className="absolute z-10 bg-white border rounded shadow w-full max-h-40 overflow-auto">
+                  <div className="absolute z-20 mt-1 bg-white border rounded-lg shadow-lg w-full max-h-40 overflow-auto">
                     {sparepartList
                       .filter(sp => sp.nama_barang.toLowerCase().includes(formBarang.toLowerCase()))
                       .map(sp => (
                         <div
                           key={sp.id_sparepart}
-                          className="px-3 py-2 cursor-pointer hover:bg-blue-100"
+                          className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
                           onClick={() => setFormBarang(sp.id_sparepart)}
                         >
                           {sp.nama_barang}
@@ -420,43 +683,245 @@ export default function TransaksiPage() {
                 )}
               </div>
             </div>
+
+            {/* Info Transaksi */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Jumlah</label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={formJumlah === 0 ? "" : formJumlah}
+                  onChange={e => {
+                    const val = e.target.value.replace(/^0+/, "");
+                    setFormJumlah(val === "" ? 0 : Number(val));
+                  }}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Tipe</label>
+                <Select value={formTipe} onValueChange={setFormTipe}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masuk">Masuk</SelectItem>
+                    <SelectItem value="keluar">Keluar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div>
-              <label className="block mb-1 font-semibold">Jumlah</label>
+              <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
               <Input
-                type="number"
-                min={1}
-                value={formJumlah === 0 ? '' : formJumlah}
-                onChange={e => {
-                  // Hilangkan leading zero
-                  const val = e.target.value.replace(/^0+/, '');
-                  setFormJumlah(val === '' ? 0 : Number(val));
-                }}
-                required
+                value={formKeterangan}
+                onChange={e => setFormKeterangan(e.target.value)}
+                placeholder="Keterangan (opsional)"
               />
             </div>
-            <div>
-              <label className="block mb-1 font-semibold">Tipe</label>
-              <Select value={formTipe} onValueChange={setFormTipe}>
-                <SelectTrigger><SelectValue placeholder="Pilih Tipe" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="masuk">Masuk</SelectItem>
-                  <SelectItem value="keluar">Keluar</SelectItem>
-                </SelectContent>
-              </Select>
+
+            {/* Total Harga */}
+            <div className="bg-gray-50 p-3 rounded-lg border">
+              <label className="block mb-1 text-sm font-medium text-gray-700">Total Harga</label>
+              <div className="text-lg font-semibold text-gray-800">
+                Rp {(() => {
+                  const sparepart = sparepartList.find(sp => sp.id_sparepart === formBarang);
+                  if (!sparepart || formJumlah <= 0) return "0";
+                  if (formTipe === "masuk") {
+                    return (formJumlah * (sparepart.harga_modal ?? 0)).toLocaleString();
+                  } else {
+                    return (formJumlah * (sparepart.harga_jual ?? 0)).toLocaleString();
+                  }
+                })()}
+              </div>
             </div>
-            <div>
-              <label className="block mb-1 font-semibold">Keterangan</label>
-              <Input value={formKeterangan} onChange={e => setFormKeterangan(e.target.value)} placeholder="Keterangan (opsional)" />
-            </div>
-            <div>
-              <label className="block mb-1 font-semibold">Total Harga</label>
-              <Input value={getHargaTotal().toLocaleString()} readOnly disabled />
-            </div>
-            <div className="flex gap-2 justify-end mt-4">
-              <Button type="button" variant="ghost" onClick={() => setOpenForm(false)}>Batal</Button>
-              <Button type="submit">Simpan</Button>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setOpenForm(false)}
+                className="px-4"
+              >
+                Batal
+              </Button>
+              <Button type="submit" className="px-5">
+                Simpan
+              </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Edit Transaksi */}
+      <Dialog open={openEditForm} onOpenChange={setOpenEditForm}>
+        <DialogContent className="sm:max-w-lg rounded-2xl shadow-xl">
+          <DialogHeader className="border-b pb-3">
+            <DialogTitle className="text-lg font-semibold text-gray-800">
+              Edit Transaksi
+            </DialogTitle>
+            <p className="text-sm text-gray-500">
+              Ubah detail transaksi dengan benar sebelum menyimpan.
+            </p>
+          </DialogHeader>
+          <form
+            className="space-y-5 py-2"
+            onSubmit={e => {
+              e.preventDefault();
+              setShowEditConfirm(true);
+            }}
+          >
+            {/* Detail Barang */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Barang</label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Cari nama barang..."
+                  value={
+                    editBarang
+                      ? sparepartList.find(sp => sp.id_sparepart === editBarang)?.nama_barang || editBarang
+                      : ""
+                  }
+                  onChange={e => {
+                    setEditBarang(e.target.value);
+                  }}
+                  autoComplete="off"
+                  className="pr-10"
+                />
+                <div className="absolute inset-y-0 right-2 flex items-center text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                </div>
+                {editBarang && editBarang.length > 0 && (
+                  <div className="absolute z-20 mt-1 bg-white border rounded-lg shadow-lg w-full max-h-40 overflow-auto">
+                    {sparepartList
+                      .filter(sp => sp.nama_barang.toLowerCase().includes(editBarang.toLowerCase()))
+                      .map(sp => (
+                        <div
+                          key={sp.id_sparepart}
+                          className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
+                          onClick={() => setEditBarang(sp.id_sparepart)}
+                        >
+                          {sp.nama_barang}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Info Transaksi */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Jumlah</label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={editJumlah === 0 ? "" : editJumlah}
+                  onChange={e => {
+                    const val = e.target.value.replace(/^0+/, "");
+                    setEditJumlah(val === "" ? 0 : Number(val));
+                  }}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Tipe</label>
+                <Select value={editTipe} onValueChange={setEditTipe}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masuk">Masuk</SelectItem>
+                    <SelectItem value="keluar">Keluar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
+              <Input
+                value={editKeterangan}
+                onChange={e => setEditKeterangan(e.target.value)}
+                placeholder="Keterangan (opsional)"
+              />
+            </div>
+
+            {/* Total Harga */}
+            <div className="bg-gray-50 p-3 rounded-lg border">
+              <label className="block mb-1 text-sm font-medium text-gray-700">Total Harga</label>
+              <div className="text-lg font-semibold text-gray-800">
+                Rp {(() => {
+                  const sparepart = sparepartList.find(sp => sp.id_sparepart === editBarang);
+                  if (!sparepart || editJumlah <= 0) return "0";
+                  if (editTipe === "masuk") {
+                    return (editJumlah * (sparepart.harga_modal ?? 0)).toLocaleString();
+                  } else {
+                    return (editJumlah * (sparepart.harga_jual ?? 0)).toLocaleString();
+                  }
+                })()}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setOpenEditForm(false)}
+                className="px-4"
+              >
+                Batal
+              </Button>
+              <Button type="submit" className="px-5">
+                Simpan
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Konfirmasi Edit Transaksi */}
+      <Dialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Konfirmasi Edit Transaksi</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <p>Barang: <b>{sparepartList.find(sp => sp.id_sparepart === editBarang)?.nama_barang || ""}</b></p>
+            <p>Jumlah: <b>{editJumlah}</b></p>
+            <p>Tipe: <b>{editTipe}</b></p>
+            <p>Total Harga: <b>Rp {getEditHargaTotal().toLocaleString()}</b></p>
+          </div>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="ghost" onClick={() => setShowEditConfirm(false)}>Batal</Button>
+            <Button onClick={() => {
+              handleEditTransaksi();
+              toast.success("Transaksi berhasil diupdate");
+            }}>Konfirmasi</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Konfirmasi Hapus Transaksi */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Konfirmasi Hapus Transaksi</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <p>Apakah Anda yakin ingin menghapus transaksi ini?</p>
+          </div>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>Batal</Button>
+            <Button variant="destructive" onClick={() => {
+              handleDelete(deleteId);
+              toast.success("Transaksi berhasil dihapus");
+            }}>Hapus</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
