@@ -51,7 +51,16 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ open, onOpenCha
 			}, 500);
 		} catch (err) {
 			// @ts-expect-error: error object may have response.data.error
-			toast.error(err?.response?.data?.error || "Gagal ganti password.");
+			const errorMsg = err?.response?.data?.error || "Gagal ganti password.";
+			if (errorMsg.toLowerCase().includes("token tidak valid")) {
+				toast.error("Sesi anda sudah habis, silahkan login ulang.");
+				localStorage.removeItem("user");
+				setTimeout(() => {
+					router.replace("/login");
+				}, 500);
+				return;
+			}
+			toast.error(errorMsg);
 		} finally {
 			setLoading(false);
 			setShowConfirm(false);
