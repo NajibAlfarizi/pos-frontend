@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -10,8 +11,6 @@ import {
   deleteTransaksi,
   exportTransaksiCSV,
   exportTransaksiExcel,
-  getRingkasanTransaksi,
-  getDetailTransaksi,
 } from "@/lib/api/transaksiHelper";
 import { apiWithRefresh } from "@/lib/api/authHelper";
 import { useRouter } from "next/navigation";
@@ -34,6 +33,9 @@ interface Transaksi {
   harga_total: number;
   tipe: string;
   keterangan: string;
+  tipe_pembayaran?: string;
+  status_pembayaran?: string;
+  due?: string;
   sparepart?: { nama_barang: string; kategori?: string } | null;
   user?: string;
 }
@@ -65,11 +67,11 @@ export default function TransaksiPage() {
   const [formJumlah, setFormJumlah] = useState<number>(1);
   const [formKeterangan, setFormKeterangan] = useState<string>("");
   const [formTipe, setFormTipe] = useState<string>("masuk");
+  const [formKategori, setFormKategori] = useState<string>("");
+  const [formMerek, setFormMerek] = useState<string>("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
-  const [openRingkasan, setOpenRingkasan] = useState(false);
   const [selected, setSelected] = useState<Transaksi | null>(null);
-  const [ringkasan, setRingkasan] = useState<any>(null);
   // Faktur preview
   const [openFakturPreview, setOpenFakturPreview] = useState(false);
   const [fakturData, setFakturData] = useState<Transaksi | null>(null);
@@ -86,6 +88,12 @@ export default function TransaksiPage() {
   // State untuk date range picker
   const [dateRange, setDateRange] = useState<{from: string, to: string}>({from: "", to: ""});
   const router = useRouter();
+  // State untuk pembayaran
+  const [formTipePembayaran, setFormTipePembayaran] = useState<string>("cash");
+  const [formDue, setFormDue] = useState<string>("");
+  const [editTipePembayaran, setEditTipePembayaran] = useState<string>("cash");
+  const [editStatusPembayaran, setEditStatusPembayaran] = useState<string>("belum lunas");
+  const [editDue, setEditDue] = useState<string>("");
   // Fetch sparepart & kategori list for filter dropdown
   useEffect(() => {
     if (!token) return;
@@ -153,21 +161,6 @@ export default function TransaksiPage() {
     setLoading(false);
   };
 
-  const fetchRingkasan = async () => {
-    try {
-      const res = await apiWithRefresh(
-        (tok) => getRingkasanTransaksi(tok, filters),
-        token,
-        setToken,
-        () => {},
-        router
-      );
-      setRingkasan(res);
-    } catch (e) {
-      toast.error("Gagal memuat ringkasan");
-    }
-  };
-
   useEffect(() => {
     if (!token) return;
     fetchData();
@@ -198,6 +191,9 @@ export default function TransaksiPage() {
     setEditJumlah(trx.jumlah);
     setEditKeterangan(trx.keterangan || "");
     setEditTipe(trx.tipe);
+    setEditTipePembayaran(trx.tipe_pembayaran || "cash");
+    setEditStatusPembayaran(trx.status_pembayaran || "belum lunas");
+    setEditDue(trx.due || "");
     setOpenEditForm(true);
   };
 
@@ -215,8 +211,12 @@ export default function TransaksiPage() {
   // Handler update transaksi
   const handleEditTransaksi = async () => {
     setShowEditConfirm(false);
-    if (!editBarang || editJumlah <= 0 || !editTipe) {
-      toast.error("Barang, jumlah, dan tipe wajib diisi");
+    if (!editBarang || editJumlah <= 0 || !editTipe || !editTipePembayaran) {
+      toast.error("Barang, jumlah, tipe, dan tipe pembayaran wajib diisi");
+      return;
+    }
+    if (editTipePembayaran === "kredit" && !editDue) {
+      toast.error("Due wajib diisi jika pembayaran kredit");
       return;
     }
     const harga_total = getEditHargaTotal();
@@ -228,6 +228,9 @@ export default function TransaksiPage() {
           tipe: editTipe,
           harga_total,
           keterangan: editKeterangan,
+          tipe_pembayaran: editTipePembayaran,
+          status_pembayaran: editStatusPembayaran,
+          due: editTipePembayaran === "kredit" ? editDue : null,
         }),
         token,
         setToken,
@@ -241,6 +244,9 @@ export default function TransaksiPage() {
       setEditKeterangan("");
       setEditTipe("masuk");
       setEditId("");
+      setEditTipePembayaran("cash");
+      setEditStatusPembayaran("belum lunas");
+      setEditDue("");
       fetchData();
     } catch {
       toast.error("Gagal update transaksi");
@@ -264,8 +270,12 @@ export default function TransaksiPage() {
 
   const handleTambahTransaksi = async () => {
     setShowConfirm(false);
-    if (!formBarang || formJumlah <= 0 || !formTipe) {
-      toast.error("Barang, jumlah, dan tipe wajib diisi");
+    if (!formBarang || formJumlah <= 0 || !formTipe || !formTipePembayaran) {
+      toast.error("Barang, jumlah, tipe, dan tipe pembayaran wajib diisi");
+      return;
+    }
+    if (formTipePembayaran === "kredit" && !formDue) {
+      toast.error("Due wajib diisi jika pembayaran kredit");
       return;
     }
     const harga_total = getHargaTotal();
@@ -277,6 +287,9 @@ export default function TransaksiPage() {
           tipe: formTipe,
           harga_total,
           keterangan: formKeterangan,
+          tipe_pembayaran: formTipePembayaran,
+          status_pembayaran: "belum lunas",
+          due: formTipePembayaran === "kredit" ? formDue : null,
         }),
         token,
         setToken,
@@ -289,6 +302,8 @@ export default function TransaksiPage() {
       setFormJumlah(1);
       setFormKeterangan("");
       setFormTipe("masuk");
+      setFormTipePembayaran("cash");
+      setFormDue("");
       fetchData();
       // Set faktur data dan buka preview
       setFakturData({
@@ -353,14 +368,6 @@ export default function TransaksiPage() {
                 </div>
               )}
             </div>
-            {/* Ringkasan Card */}
-            {ringkasan && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex flex-col items-end min-w-[140px]">
-                <div className="flex items-center gap-1 text-blue-700 font-bold"><BarChart3 size={16}/> Ringkasan</div>
-                <div className="text-xs text-gray-700">Total: <span className="font-bold">Rp {ringkasan.total_transaksi.toLocaleString()}</span></div>
-                <div className="text-xs text-gray-700">Cashflow: <span className="font-bold">Rp {ringkasan.cashflow.toLocaleString()}</span></div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -506,63 +513,55 @@ export default function TransaksiPage() {
       <div className="overflow-x-auto">
         <Table className="w-full text-sm border-collapse">
           <TableHeader>
-            <TableRow className="bg-gray-100 border-b">
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-8">No</TableHead>
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-24">Tanggal</TableHead>
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-32">Barang</TableHead>
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-28">Kategori</TableHead>
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-16">Jml</TableHead>
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-28">Total</TableHead>
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-20">Tipe</TableHead>
-              <TableHead className="px-3 py-2 text-center font-semibold text-gray-700 w-28">Aksi</TableHead>
-            </TableRow>
+              <TableRow className="bg-gray-100 border-b text-xs">
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-8">No</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Tanggal</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-20">Barang</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Kategori</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-10">Jml</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Total</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Tipe</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Pembayaran</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Status</TableHead>
+                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Aksi</TableHead>
+              </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((trx, idx) => (
               <TableRow
                 key={trx.id_transaksi}
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-gray-50 transition-colors text-xs"
               >
-                <TableCell className="px-3 py-2 text-center">
-                  {(page - 1) * limit + idx + 1}
+                <TableCell className="px-1 py-1 text-center w-8">{(page - 1) * limit + idx + 1}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-16">{(() => {const d = new Date(trx.tanggal);return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`})()}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-20 truncate" title={trx.sparepart?.nama_barang}>{trx.sparepart?.nama_barang || "-"}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-16 truncate" title={trx.sparepart?.kategori}>{trx.sparepart?.kategori || "-"}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-10">{trx.jumlah}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-16">Rp {trx.harga_total.toLocaleString()}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-12">
+                  <span className={`px-1 py-0.5 rounded-full text-[10px] font-medium ${trx.tipe === "masuk" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{trx.tipe}</span>
                 </TableCell>
-                <TableCell className="px-3 py-2 text-center">
-                  {(() => {
-                    const d = new Date(trx.tanggal)
-                    return `${String(d.getDate()).padStart(2, "0")}/${String(
-                      d.getMonth() + 1
-                    ).padStart(2, "0")}/${d.getFullYear()}`
-                  })()}
+                <TableCell className="px-1 py-1 text-center w-16">
+                  {trx.tipe_pembayaran
+                    ? trx.tipe_pembayaran.charAt(0).toUpperCase() + trx.tipe_pembayaran.slice(1)
+                    : <span className="text-yellow-400">-</span>
+                  }
                 </TableCell>
-                <TableCell className="px-3 py-2 text-center truncate max-w-[120px]">
-                  {trx.sparepart?.nama_barang || "-"}
+                <TableCell className="px-1 py-1 text-center w-12">
+                  {trx.tipe_pembayaran === 'cash' ? (
+                    <span className="px-1 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">Lunas</span>
+                  ) : trx.tipe_pembayaran === 'kredit' ? (
+                    <span className={`px-1 py-0.5 rounded-full text-[10px] font-bold ${trx.status_pembayaran === 'lunas' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{trx.status_pembayaran ? trx.status_pembayaran.charAt(0).toUpperCase() + trx.status_pembayaran.slice(1) : '-'}</span>
+                  ) : (
+                    <span className="text-yellow-400">-</span>
+                  )}
                 </TableCell>
-                <TableCell className="px-3 py-2 text-center truncate max-w-[80px]">
-                  {trx.sparepart?.kategori || "-"}
-                </TableCell>
-                <TableCell className="px-3 py-2 text-center">
-                  {trx.jumlah}
-                </TableCell>
-                <TableCell className="px-3 py-2 text-center font-medium text-gray-700">
-                  Rp {trx.harga_total.toLocaleString()}
-                </TableCell>
-                <TableCell className="px-3 py-2 text-center">
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      trx.tipe === "masuk"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {trx.tipe}
-                  </span>
-                </TableCell>
-                <TableCell className="px-3 py-2 text-center">
-                  <div className="flex items-center justify-center gap-2">
+                <TableCell className="px-1 py-1 text-center w-16">
+                  <div className="flex items-center justify-center gap-1">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-blue-600 px-2 py-1 hover:bg-blue-50"
+                      className="text-blue-600 px-1 py-0 hover:bg-blue-50 text-[10px]"
                       onClick={() => {
                         setFakturData({ ...trx })
                         setOpenFakturPreview(true)
@@ -573,7 +572,7 @@ export default function TransaksiPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-gray-600 px-2 py-1 hover:bg-gray-50"
+                      className="text-gray-600 px-1 py-0 hover:bg-gray-50 text-[10px]"
                       onClick={() => openEditModal(trx)}
                     >
                       Edit
@@ -581,7 +580,7 @@ export default function TransaksiPage() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      className="px-2 py-1 hover:bg-red-600"
+                      className="px-1 py-0 hover:bg-red-600 text-[10px]"
                       onClick={() => {
                         setDeleteId(trx.id_transaksi);
                         setShowDeleteConfirm(true);
@@ -622,8 +621,6 @@ export default function TransaksiPage() {
     </div>
         </CardContent>
       </Card>
-
-      {/* Modal Tambah Transaksi */}
       {/* Modal Tambah Transaksi */}
       <Dialog open={openForm} onOpenChange={setOpenForm}>
         <DialogContent className="sm:max-w-lg rounded-2xl shadow-xl">
@@ -642,47 +639,100 @@ export default function TransaksiPage() {
               setShowConfirm(true);
             }}
           >
-            {/* Detail Barang */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Barang</label>
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Cari nama barang..."
-                  value={
-                    formBarang
-                      ? sparepartList.find(sp => sp.id_sparepart === formBarang)?.nama_barang || formBarang
-                      : ""
-                  }
-                  onChange={e => {
-                    setFormBarang(e.target.value);
-                  }}
-                  autoComplete="off"
-                  className="pr-10"
-                />
-                <div className="absolute inset-y-0 right-2 flex items-center text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
-                  </svg>
-                </div>
-                {formBarang && formBarang.length > 0 && (
-                  <div className="absolute z-20 mt-1 bg-white border rounded-lg shadow-lg w-full max-h-40 overflow-auto">
-                    {sparepartList
-                      .filter(sp => sp.nama_barang.toLowerCase().includes(formBarang.toLowerCase()))
-                      .map(sp => (
-                        <div
-                          key={sp.id_sparepart}
-                          className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
-                          onClick={() => setFormBarang(sp.id_sparepart)}
-                        >
-                          {sp.nama_barang}
-                        </div>
-                      ))}
-                  </div>
-                )}
+            {/* Pilih Kategori dan Merek sebelum cari barang */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Kategori Barang</label>
+                <Select value={formKategori || "none"} onValueChange={val => setFormKategori(val === "none" ? "" : val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Pilih Kategori</SelectItem>
+                    {kategoriList.map((kat, idx) => (
+                      <SelectItem key={kat.id_kategori_barang ? String(kat.id_kategori_barang) : `kat-${idx}`} value={kat.id_kategori_barang}>{kat.nama_kategori}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Merek</label>
+                <Select value={formMerek || "none"} onValueChange={val => setFormMerek(val === "none" ? "" : val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Merek" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Pilih Merek</SelectItem>
+                    {/* Ambil merek dari sparepartList yang sesuai kategori, pastikan key unik dan tidak duplikat */}
+                    {(() => {
+                      // Filter sparepart sesuai kategori yang dipilih
+                      const filtered = sparepartList.filter(sp => sp.id_kategori_barang === formKategori);
+                      // Ambil semua merek unik
+                      const merekSet = new Set<string>();
+                      filtered.forEach(sp => {
+                        let merekStr = "";
+                        if (typeof sp.merek === "object" && sp.merek !== null) {
+                          merekStr = sp.merek.nama_merek ?? JSON.stringify(sp.merek);
+                        } else {
+                          merekStr = String(sp.merek);
+                        }
+                        if (merekStr) merekSet.add(merekStr);
+                      });
+                      return Array.from(merekSet).map((merek, idx) => (
+                        <SelectItem key={merek + '-' + idx} value={merek}>{merek}</SelectItem>
+                      ));
+                    })()}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+            {/* Field cari barang muncul setelah kategori dan merek dipilih */}
+            {formKategori && formMerek && (
+              <div className="space-y-2 mt-4">
+                <label className="block text-sm font-medium text-gray-700">Barang</label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Cari nama barang..."
+                    value={
+                      formBarang
+                        ? sparepartList.find(sp => sp.id_sparepart === formBarang)?.nama_barang || formBarang
+                        : ""
+                    }
+                    onChange={e => {
+                      setFormBarang(e.target.value);
+                    }}
+                    autoComplete="off"
+                    className="pr-10"
+                  />
+                  <div className="absolute inset-y-0 right-2 flex items-center text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                    </svg>
+                  </div>
+                  {formBarang !== undefined && (
+                    <div className="absolute z-20 mt-1 bg-white border rounded-lg shadow-lg w-full max-h-40 overflow-auto">
+                      {sparepartList
+                        .filter(sp => sp.id_kategori_barang === formKategori &&
+                          ((typeof sp.merek === 'object' && sp.merek !== null ? sp.merek.nama_merek : String(sp.merek)) === formMerek) &&
+                          sp.nama_barang.toLowerCase().includes((formBarang || "").toLowerCase())
+                        )
+                        .sort((a, b) => a.nama_barang.localeCompare(b.nama_barang))
+                        .map(sp => (
+                          <div
+                            key={sp.id_sparepart}
+                            className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
+                            onClick={() => setFormBarang(sp.id_sparepart)}
+                          >
+                            {sp.nama_barang}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Info Transaksi */}
             <div className="grid grid-cols-2 gap-4">
@@ -710,6 +760,32 @@ export default function TransaksiPage() {
                     <SelectItem value="keluar">Keluar</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Tipe Pembayaran</label>
+                <Select value={formTipePembayaran} onValueChange={setFormTipePembayaran}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Tipe Pembayaran" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="kredit">Kredit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                {formTipePembayaran === "kredit" && (
+                  <>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Due Date</label>
+                    <DatePicker
+                      value={formDue ? new Date(formDue) : null}
+                      onChange={val => setFormDue(val ? val.toISOString().split("T")[0] : "")}
+                      placeholder="Pilih Due Date"
+                    />
+                  </>
+                )}
               </div>
             </div>
 
@@ -844,6 +920,46 @@ export default function TransaksiPage() {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Tipe Pembayaran</label>
+                <Select value={editTipePembayaran} onValueChange={setEditTipePembayaran}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Tipe Pembayaran" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="kredit">Kredit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Status Pembayaran</label>
+                <Select value={editStatusPembayaran} onValueChange={setEditStatusPembayaran} disabled={editTipePembayaran === "cash"}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Status Pembayaran" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="belum lunas">Belum Lunas</SelectItem>
+                    <SelectItem value="lunas">Lunas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                {editTipePembayaran === "kredit" && (
+                  <>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Due Date</label>
+                    <DatePicker
+                      value={editDue ? new Date(editDue) : null}
+                      onChange={val => setEditDue(val ? val.toISOString().split("T")[0] : "")}
+                      placeholder="Pilih Due Date"
+                    />
+                  </>
+                )}
+              </div>
+            </div>
 
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
@@ -967,7 +1083,6 @@ export default function TransaksiPage() {
           <DialogHeader><DialogTitle>Preview Faktur</DialogTitle></DialogHeader>
           {fakturData && (
             <div id="faktur-area" className="bg-white p-6 rounded shadow border mb-4 text-black text-[13px] font-sans">
-              {/* Print style for faktur */}
               <style>{`
                 @media print {
                   body { margin: 0; }
@@ -1001,55 +1116,52 @@ export default function TransaksiPage() {
                 }
               `}</style>
               {/* Header toko */}
-                <div className="text-center mb-2">
-                  <div className="font-bold text-lg">Chicha Mobile</div>
-                  <div className="text-xs">Jl.Bahder Johan, Kota Padang Panjang</div>
-                </div>
+              <div className="text-center mb-2">
+                <div className="font-bold text-lg">Chicha Mobile</div>
+                <div className="text-xs">Jl.Bahder Johan, Kota Padang Panjang</div>
+              </div>
               <hr className="my-2" />
-                {/* Info faktur */}
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div></div>
-                  <div>
-                    <div><b>Tanggal</b>: {(() => { const d = new Date(fakturData.tanggal); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth()+1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })()}</div>
-                    <div><b>No. Faktur</b>: {fakturData.id_transaksi}</div>
-                  </div>
-                </div>
+              {/* Info faktur */}
+              <div className="mb-2">
+                <div><b>Nama Pembeli</b>: {fakturData.keterangan || '-'}</div>
+                <div><b>Tanggal</b>: {(() => { const d = new Date(fakturData.tanggal); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth()+1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })()}</div>
+                <div><b>Jam</b>: {(() => { const d = new Date(fakturData.tanggal); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')} WIB`; })()}</div>
+                <div><b>No. Faktur</b>: {fakturData.id_transaksi}</div>
+              </div>
               {/* Tabel barang */}
               <table className="w-full border text-xs mb-2" style={{ borderCollapse: 'collapse' }}>
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border px-2 py-1">No.</th>
-                    <th className="border px-2 py-1">Nama Barang</th>
+                    <th className="border px-2 py-1">Barang</th>
                     <th className="border px-2 py-1">Qty</th>
-                    <th className="border px-2 py-1">Kategori Barang</th>
                     <th className="border px-2 py-1">Harga</th>
                     <th className="border px-2 py-1">Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="border px-2 py-1 text-center">1</td>
                     <td className="border px-2 py-1">{fakturData.sparepart?.nama_barang || '-'}</td>
                     <td className="border px-2 py-1 text-center">{fakturData.jumlah}</td>
-                    <td className="border px-2 py-1 text-center">{fakturData.sparepart?.kategori || '-'}</td>
                     <td className="border px-2 py-1 text-right">{(fakturData.harga_total / fakturData.jumlah).toLocaleString()}</td>
                     <td className="border px-2 py-1 text-right">{fakturData.harga_total.toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
-                {/* Total harga */}
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div></div>
-                  <div>
-                    <table className="w-full text-xs">
-                      <tbody>
-                        <tr className="font-bold"><td className="pr-2">TOTAL</td><td className="text-right">{fakturData.harga_total.toLocaleString()}</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                {/* Tertanda toko */}
-                <div className="mt-8 text-right font-semibold">Tertanda Chicha Mobile</div>
+              {/* Total harga */}
+              <div className="mb-2 font-bold text-right">Total: Rp {fakturData.harga_total.toLocaleString()}</div>
+              {/* Tipe pembayaran dan status hutang */}
+              <div className="mb-2">
+                <div><b>Tipe Pembayaran</b>: {fakturData.tipe_pembayaran || '-'}</div>
+                {fakturData.tipe_pembayaran === 'kredit' && (
+                  <>
+                    <div><b>Status</b>: {fakturData.status_pembayaran || '-'}</div>
+                    <div><b>Sisa Hutang</b>: Rp {fakturData.harga_total.toLocaleString()}</div>
+                    <div><b>Tenggat Waktu</b>: {fakturData.due || '-'}</div>
+                  </>
+                )}
+              </div>
+              {/* Tertanda toko */}
+              <div className="mt-8 text-right font-semibold">Tertanda Chicha Mobile</div>
             </div>
           )}
           <div className="flex gap-2 justify-end mt-2">
@@ -1059,7 +1171,7 @@ export default function TransaksiPage() {
   const style = `
     <style>
       @media print {
-        body { margin:0; font-family:monospace,sans-serif; font-size:10px; color:#222; }
+        body { margin:0; font-family:sans-serif; font-size:13px; color:#222; }
         .faktur-termal { width:58mm; min-width:58mm; max-width:58mm; margin:0 auto; background:white; }
         .faktur-header { text-align:center; margin-bottom:4px; }
         .faktur-title { font-weight:bold; font-size:13px; }
@@ -1080,6 +1192,7 @@ export default function TransaksiPage() {
       }
     </style>
   `;
+  const jamWIB = (() => { const d = new Date(fakturData.tanggal); let jam = d.getHours(); let menit = d.getMinutes(); let detik = d.getSeconds(); jam = jam + 7 > 23 ? (jam + 7 - 24) : (jam + 7); return `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')} WIB`; })();
   const fakturHtml = `
     <div class="faktur-termal">
       <div class="faktur-header">
@@ -1088,32 +1201,38 @@ export default function TransaksiPage() {
       </div>
       <hr />
       <div class="faktur-info faktur-info-right">
+        <div><span class="font-bold">Nama Pembeli:</span> ${fakturData.keterangan || '-'}</div>
         <div><span class="font-bold">Tanggal:</span> ${(() => { const d = new Date(fakturData.tanggal); const day = String(d.getDate()).padStart(2, '0'); const month = String(d.getMonth()+1).padStart(2, '0'); const year = d.getFullYear(); return `${day}/${month}/${year}`; })()}</div>
+        <div><span class="font-bold">Jam:</span> ${jamWIB}</div>
         <div><span class="font-bold">No. Faktur:</span> ${fakturData.id_transaksi}</div>
       </div>
       <table class="faktur-table">
         <thead>
           <tr>
-            <th>No.</th>
-            <th>Nama</th>
+            <th>Barang</th>
             <th>Qty</th>
-            <th>Kat</th>
             <th>Harga</th>
-            <th>Sub</th>
+            <th>Subtotal</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="text-center">1</td>
             <td>${fakturData.sparepart?.nama_barang || '-'}</td>
             <td class="text-center">${fakturData.jumlah}</td>
-            <td class="text-center">${fakturData.sparepart?.kategori || '-'}</td>
             <td class="text-right">${(fakturData.harga_total / fakturData.jumlah).toLocaleString()}</td>
             <td class="text-right">${fakturData.harga_total.toLocaleString()}</td>
           </tr>
         </tbody>
       </table>
-      <div class="mb-2 font-bold text-right">TOTAL ${fakturData.harga_total.toLocaleString()}</div>
+      <div class="mb-2 font-bold text-right">Total: Rp ${fakturData.harga_total.toLocaleString()}</div>
+      <div class="mb-2">
+        <div><span class="font-bold">Tipe Pembayaran:</span> ${fakturData.tipe_pembayaran || '-'}</div>
+        ${fakturData.tipe_pembayaran === 'kredit' ? `
+          <div><span class="font-bold">Status:</span> ${fakturData.status_pembayaran || '-'}</div>
+          <div><span class="font-bold">Sisa Hutang:</span> Rp ${fakturData.harga_total.toLocaleString()}</div>
+          <div><span class="font-bold">Tenggat Waktu:</span> ${fakturData.due || '-'}</div>
+        ` : ''}
+      </div>
       <div class="mt-8 text-right font-semibold">Tertanda Chicha Mobile</div>
     </div>
   `;
@@ -1127,21 +1246,6 @@ export default function TransaksiPage() {
   }
 }}>Faktur</Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Ringkasan */}
-      <Dialog open={openRingkasan} onOpenChange={setOpenRingkasan}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Ringkasan Transaksi</DialogTitle></DialogHeader>
-          {ringkasan && (
-            <div className="grid gap-2">
-              <Card><CardContent>Total: Rp {ringkasan.total_transaksi.toLocaleString()}</CardContent></Card>
-              <Card><CardContent>Cashflow: Rp {ringkasan.cashflow.toLocaleString()}</CardContent></Card>
-              <Card><CardContent>Total Masuk: Rp {ringkasan.total_masuk.toLocaleString()}</CardContent></Card>
-              <Card><CardContent>Total Keluar: Rp {ringkasan.total_keluar.toLocaleString()}</CardContent></Card>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>
