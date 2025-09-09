@@ -113,9 +113,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ open, onOpenCha
 			</Dialog>
 			<ConfirmDialog open={showConfirm} onOpenChange={setShowConfirm}>
 				<ConfirmDialogContent className="max-w-sm rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
-					<ConfirmDialogHeader>
-						<ConfirmDialogTitle className="text-lg font-bold text-blue-700 dark:text-blue-300">Konfirmasi Ganti Password</ConfirmDialogTitle>
-					</ConfirmDialogHeader>
+					<ConfirmDialogTitle className="text-lg font-bold text-blue-700 dark:text-blue-300">Konfirmasi Ganti Password</ConfirmDialogTitle>
 					<div className="py-4 text-gray-700 dark:text-gray-200">Apakah Anda yakin ingin mengganti password?</div>
 					<ConfirmDialogFooter className="flex gap-2 justify-end">
 						<Button type="button" variant="outline" onClick={() => setShowConfirm(false)} disabled={loading} className="rounded-lg px-4 py-2">Batal</Button>
