@@ -3,7 +3,6 @@
 import { LogOut, Menu, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import ChangePasswordForm from "./change-password-form";
 import { useRouter } from "next/navigation";
 
 
@@ -11,7 +10,6 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const router = useRouter();
-  const [showChangePassword, setShowChangePassword] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -65,15 +63,6 @@ export default function Navbar() {
             <div className="absolute right-0 mt-2 w-52 shadow-2xl rounded-xl py-3 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 flex flex-col gap-2 animate-fadeIn">
               <div className="px-4 py-2 border-b text-xs text-gray-500 dark:text-gray-400 mb-2">Akun: <span className="font-semibold text-gray-700 dark:text-white">{profile?.email || '-'}</span></div>
               <button
-                className="w-full px-4 py-2 text-left text-base flex items-center gap-2 text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900 font-semibold transition"
-                onClick={() => {
-                  setShowChangePassword(true);
-                  setOpen(false);
-                }}
-              >
-                <User className="w-5 h-5" /> Ganti Password
-              </button>
-              <button
                 className="w-full px-4 py-2 text-left text-base flex items-center gap-2 text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900 font-semibold transition"
                 onClick={() => {
                   localStorage.removeItem("user");
@@ -85,7 +74,6 @@ export default function Navbar() {
               </button>
             </div>
           )}
-          <ChangePasswordForm open={showChangePassword} onOpenChange={setShowChangePassword} />
         </div>
       </div>
     </header>
