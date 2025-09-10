@@ -19,6 +19,44 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 
+// Helper for formatting and parsing rupiah
+function formatRupiah(num: string | number) {
+  let str = typeof num === 'number' ? num.toString() : num.replace(/[^\d]/g, '');
+  if (!str) return '';
+  return str.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function parseRupiah(str: string) {
+  return str.replace(/\./g, '');
+}
+
+// Custom input for rupiah
+const RupiahInput: React.FC<{ name: string; label: string; defaultValue?: number }> = ({ name, label, defaultValue }) => {
+  const [value, setValue] = React.useState(defaultValue ? formatRupiah(defaultValue) : '');
+
+  React.useEffect(() => {
+    setValue(defaultValue ? formatRupiah(defaultValue) : '');
+  }, [defaultValue]);
+
+  return (
+    <input
+      name={name}
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9.]*"
+      className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
+      placeholder={label}
+      value={value}
+      onChange={e => {
+        // Only allow numbers
+        const raw = e.target.value.replace(/[^\d]/g, '');
+        setValue(formatRupiah(raw));
+      }}
+      autoComplete="off"
+    />
+  );
+};
+
 const SparepartPage: React.FC = () => {
   const [sparepartList, setSparepartList] = useState<any[]>([]);
   const [search, setSearch] = useState('');
@@ -183,10 +221,12 @@ const SparepartPage: React.FC = () => {
     const id_merek = (form.id_merek as any)?.value || '';
     const sumber = (form.sumber as any)?.value || '';
     const jumlah = Number((form.jumlah as any)?.value) || 0;
-    const terjual = modalType === 'edit' ? Number((form.terjual as any)?.value) || 0 : 0;
+    // Fix: saat edit, ambil terjual dari selectedSparepart
+    const terjual = modalType === 'edit' ? Number(selectedSparepart?.terjual) || 0 : 0;
     const sisa = jumlah - terjual;
-    const harga_modal = Number((form.harga_modal as any)?.value) || 0;
-    const harga_jual = Number((form.harga_jual as any)?.value) || 0;
+    // Parse formatted input back to number
+    const harga_modal = Number(parseRupiah((form.harga_modal as any)?.value)) || 0;
+    const harga_jual = Number(parseRupiah((form.harga_jual as any)?.value)) || 0;
 
     const payload = {
       id_sparepart: modalType === 'add' ? undefined : selectedSparepart?.id_sparepart,
@@ -402,7 +442,7 @@ const SparepartPage: React.FC = () => {
                 <td className="px-3 py-2 text-sm text-gray-700">
                   {sparepart.merek_nama || merekList.find(m => m.id_merek === sparepart.id_merek)?.nama_merek || '-'}
                 </td>
-                <td className="px-3 py-2 text-sm text-gray-900">Rp{sparepart.harga_jual}</td>
+                <td className="px-3 py-2 text-sm text-gray-900">{`Rp${formatRupiah(sparepart.harga_jual)}`}</td>
                 <td className="px-3 py-2 text-sm text-center">{sparepart.jumlah}</td>
                 <td className="px-3 py-2 text-sm text-center">{sparepart.terjual}</td>
                 <td className="px-3 py-2 text-sm text-center">
@@ -534,19 +574,16 @@ const SparepartPage: React.FC = () => {
                 defaultValue={selectedSparepart?.jumlah || ''}
                 required
               />
-              <input
+              {/* Harga Modal & Harga Jual with Rupiah formatting */}
+              <RupiahInput
                 name="harga_modal"
-                type="number"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                placeholder="Harga modal per unit"
-                defaultValue={selectedSparepart?.harga_modal || ''}
+                label="Harga modal per unit"
+                defaultValue={selectedSparepart?.harga_modal}
               />
-              <input
+              <RupiahInput
                 name="harga_jual"
-                type="number"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                placeholder="Harga jual per unit"
-                defaultValue={selectedSparepart?.harga_jual || ''}
+                label="Harga jual per unit"
+                defaultValue={selectedSparepart?.harga_jual}
               />
             </div>
 

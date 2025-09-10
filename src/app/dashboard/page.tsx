@@ -4,10 +4,12 @@
 import React, { useEffect, useState } from "react";
 import { getProfile, apiWithRefresh } from "@/lib/api/authHelper";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const DashboardPage: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
   const [token, setToken] = useState<string>("");
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
