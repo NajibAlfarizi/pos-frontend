@@ -1,5 +1,4 @@
-/* eslint-disable prefer-const */
-/* eslint-disable react-hooks/exhaustive-deps */
+ /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // improve transaksi page
@@ -304,8 +303,8 @@ export default function TransaksiPage() {
       setFormTipe("masuk");
       setFormTipePembayaran("cash");
       setFormDue("");
-  // Fetch data terbaru agar transaksi terbaru langsung tampil di tabel
-  await fetchData();
+      // Pastikan data di-refresh tanpa cache
+      await fetchData();
     } catch {
       toast.error("Gagal tambah transaksi");
     }
@@ -522,12 +521,12 @@ export default function TransaksiPage() {
               </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((trx, idx) => (
+            {[...data].sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()).map((trx, idx) => (
               <TableRow
                 key={trx.id_transaksi}
                 className="hover:bg-gray-50 transition-colors text-xs"
               >
-                <TableCell className="px-1 py-1 text-center w-8">{(page - 1) * limit + idx + 1}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-8">{idx + 1}</TableCell>
                 <TableCell className="px-1 py-1 text-center w-16">{(() => {const d = new Date(trx.tanggal);return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`})()}</TableCell>
                 <TableCell className="px-1 py-1 text-center w-20 truncate" title={trx.sparepart?.nama_barang}>{trx.sparepart?.nama_barang || "-"}</TableCell>
                 <TableCell className="px-1 py-1 text-center w-16 truncate" title={trx.sparepart?.kategori}>{trx.sparepart?.kategori || "-"}</TableCell>
