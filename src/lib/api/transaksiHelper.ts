@@ -150,3 +150,18 @@ export const deleteTransaksi = async (token: string, id: string) => {
     throw err;
   }
 };
+
+export const cetakStrukTransaksi = async (token: string, id: string) => {
+  try {
+    const res = await axios.get(`${API_URL}/transaksi/${id}/cetak-struk`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: "blob"
+    });
+    return res.data;
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      window.location.href = '/login';
+    }
+    throw err;
+  }
+}

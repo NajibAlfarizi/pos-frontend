@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
+import { useGlobalLoading } from '../GlobalLoadingContext';
 
 // Helper for formatting and parsing rupiah
 function formatRupiah(num: string | number) {
@@ -73,10 +74,12 @@ const SparepartPage: React.FC = () => {
   // Snackbar diganti dengan sonner/toast
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; type: 'add' | 'edit' | 'delete'; payload: any } | null>(null);
   const router = useRouter();
+  const { setLoading } = useGlobalLoading();
 
   // Export Excel handler
   const handleExportExcel = async () => {
     if (!token) return;
+    setLoading(true);
     try {
       const blob = await apiWithRefresh(
         (tok) => exportSparepartToExcel(tok),
@@ -94,15 +97,18 @@ const SparepartPage: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-  toast.success('Export berhasil!');
+      toast.success('Export berhasil!');
     } catch {
-  toast.error('Export gagal!');
+      toast.error('Export gagal!');
+    } finally {
+      setLoading(false);
     }
   };
 
   // Fetch sparepart list
   const fetchSparepart = useCallback(async () => {
     if (!token) return;
+    setLoading(true);
     try {
       let params: any = {};
       if (search) params.nama = search;
@@ -129,8 +135,10 @@ const SparepartPage: React.FC = () => {
       setSparepartList(result);
     } catch {
       setSparepartList([]);
+    } finally {
+      setLoading(false);
     }
-  }, [token, search, filterKategori, filterMerek, router]);
+  }, [token, search, filterKategori, filterMerek, router, setLoading]);
 
   useEffect(() => {
     const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
@@ -155,6 +163,7 @@ const SparepartPage: React.FC = () => {
   useEffect(() => {
     if (!token) return;
     const fetchKategoriMerek = async () => {
+      setLoading(true);
       try {
         const kategori = await apiWithRefresh(
           getAllKategoriBarang,
@@ -175,13 +184,15 @@ const SparepartPage: React.FC = () => {
         );
         setMerekList(Array.isArray(merek) ? merek : []);
       } catch { setMerekList([]); }
+      setLoading(false);
     };
     fetchKategoriMerek();
-  }, [token, router]);
+  }, [token, router, setLoading]);
 
   // Detail drawer/modal
   const handleDetail = async (sparepart: any) => {
     setDetailSparepart(sparepart);
+    setLoading(true);
     try {
       const data = await apiWithRefresh(
         (tok) => getRiwayatTransaksiSparepart(tok, sparepart.id_sparepart),
@@ -193,6 +204,8 @@ const SparepartPage: React.FC = () => {
       setRiwayatTransaksi(data);
     } catch {
       setRiwayatTransaksi([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -248,6 +261,7 @@ const SparepartPage: React.FC = () => {
   // Konfirmasi simpan pada modal
   const handleConfirmSave = async () => {
     if (!confirmModal) return;
+    setLoading(true);
     try {
       if (confirmModal.type === 'add') {
         await apiWithRefresh(
@@ -284,6 +298,8 @@ const SparepartPage: React.FC = () => {
     } catch {
       toast.error('Gagal menyimpan data sparepart!');
       setConfirmModal(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -320,7 +336,6 @@ const SparepartPage: React.FC = () => {
           {/* Title */}
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Manajemen Sparepart</h1>
-            <p className="text-sm text-gray-500">Kelola stok, kategori, dan transaksi sparepart</p>
           </div>
           {/* Actions */}
           <div className="flex gap-3">
@@ -446,7 +461,7 @@ const SparepartPage: React.FC = () => {
                 <td className="px-3 py-2 text-sm text-center">{sparepart.jumlah}</td>
                 <td className="px-3 py-2 text-sm text-center">{sparepart.terjual}</td>
                 <td className="px-3 py-2 text-sm text-center">
-                  {sparepart.sisa <= 5 ? (
+                  {sparepart.sisa <= 2 ? (
                     <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">
                       {sparepart.sisa}
                     </span>
@@ -689,7 +704,7 @@ const SparepartPage: React.FC = () => {
             </div>
 
             {/* Peringatan stok rendah */}
-            {detailSparepart.sisa <= 5 && (
+            {detailSparepart.sisa < 2 && (
               <div className="bg-red-100 text-red-700 rounded-lg p-3 font-medium mt-6 flex items-center gap-2">
                 ⚠️ Stok sparepart ini rendah!
               </div>
