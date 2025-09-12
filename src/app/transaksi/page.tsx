@@ -4,6 +4,8 @@
 // improve transaksi page
 'use client'
 import { useEffect, useState } from "react";
+import { useGlobalLoading } from "../GlobalLoadingContext";
+import React from "react";
 import {
   getTransaksi,
   addTransaksi,
@@ -41,6 +43,7 @@ interface Transaksi {
 }
 
 export default function TransaksiPage() {
+  const { loading, setLoading } = useGlobalLoading();
   // Konfirmasi hapus
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteId, setDeleteId] = useState<string>("");
@@ -56,7 +59,7 @@ export default function TransaksiPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [loading, setLoading] = useState(false);
+  // Hapus state loading lokal, gunakan global loading
   const [filters, setFilters] = useState<any>({});
   const [filterDari, setFilterDari] = useState<string>("");
   const [filterSampai, setFilterSampai] = useState<string>("");
@@ -133,17 +136,13 @@ export default function TransaksiPage() {
     try {
       const sendFilters = { ...filters };
       if (sendFilters.tipe === "all") delete sendFilters.tipe;
-      // Kirim filter tanggal ke backend
       if (filterDari) sendFilters.tanggal_mulai = filterDari;
       if (filterSampai) {
-        // Pastikan tanggal_selesai mencakup seluruh hari (jam 23:59:59)
         const endDate = new Date(filterSampai);
         endDate.setHours(23, 59, 59, 999);
-        // Format ke yyyy-MM-ddTHH:mm:ss agar backend tetap bisa filter
         const formattedEnd = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}T23:59:59`;
         sendFilters.tanggal_selesai = formattedEnd;
       }
-      // Kirim filter kategori jika ada
       if (filterKategori) sendFilters.kategori = filterKategori;
       const res = await apiWithRefresh(
         (tok) => getTransaksi(tok, { ...sendFilters, page, limit }),
@@ -166,6 +165,8 @@ export default function TransaksiPage() {
   }, [token, page, filters]);
 
   const handleDelete = async (id: string) => {
+    setShowDeleteConfirm(false);
+    setLoading(true);
     try {
       await apiWithRefresh(
         (tok) => deleteTransaksi(tok, id),
@@ -174,13 +175,12 @@ export default function TransaksiPage() {
         () => {},
         router
       );
-      toast.success("Transaksi dihapus");
-      setShowDeleteConfirm(false);
       setDeleteId("");
-      fetchData();
+      await fetchData();
     } catch {
       toast.error("Gagal menghapus transaksi");
     }
+    setLoading(false);
   };
 
   // Handler untuk buka modal edit dan isi data
@@ -210,12 +210,16 @@ export default function TransaksiPage() {
   // Handler update transaksi
   const handleEditTransaksi = async () => {
     setShowEditConfirm(false);
+    setOpenEditForm(false);
+    setLoading(true);
     if (!editBarang || editJumlah <= 0 || !editTipe || !editTipePembayaran) {
       toast.error("Barang, jumlah, tipe, dan tipe pembayaran wajib diisi");
+      setLoading(false);
       return;
     }
     if (editTipePembayaran === "kredit" && !editDue) {
       toast.error("Due wajib diisi jika pembayaran kredit");
+      setLoading(false);
       return;
     }
     const harga_total = getEditHargaTotal();
@@ -237,7 +241,6 @@ export default function TransaksiPage() {
         router
       );
       toast.success("Transaksi berhasil diupdate");
-      setOpenEditForm(false);
       setEditBarang("");
       setEditJumlah(1);
       setEditKeterangan("");
@@ -246,10 +249,11 @@ export default function TransaksiPage() {
       setEditTipePembayaran("cash");
       setEditStatusPembayaran("belum lunas");
       setEditDue("");
-      fetchData();
+      await fetchData();
     } catch {
       toast.error("Gagal update transaksi");
     }
+    setLoading(false);
   };
 
 
@@ -269,12 +273,16 @@ export default function TransaksiPage() {
 
   const handleTambahTransaksi = async () => {
     setShowConfirm(false);
+    setOpenForm(false);
+    setLoading(true);
     if (!formBarang || formJumlah <= 0 || !formTipe || !formTipePembayaran) {
       toast.error("Barang, jumlah, tipe, dan tipe pembayaran wajib diisi");
+      setLoading(false);
       return;
     }
     if (formTipePembayaran === "kredit" && !formDue) {
       toast.error("Due wajib diisi jika pembayaran kredit");
+      setLoading(false);
       return;
     }
     const harga_total = getHargaTotal();
@@ -296,18 +304,17 @@ export default function TransaksiPage() {
         router
       );
       toast.success("Transaksi berhasil ditambah");
-      setOpenForm(false);
       setFormBarang("");
       setFormJumlah(1);
       setFormKeterangan("");
       setFormTipe("masuk");
       setFormTipePembayaran("cash");
       setFormDue("");
-      // Pastikan data di-refresh tanpa cache
       await fetchData();
     } catch {
       toast.error("Gagal tambah transaksi");
     }
+    setLoading(false);
   };
 
   // Export handler (fix broken block)
@@ -338,7 +345,8 @@ export default function TransaksiPage() {
   }, [dateRange]);
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-2 space-y-4 bg-white">
+    <div className="max-w-5xl mx-auto py-8 px-2 space-y-4 bg-white relative">
+  {/* Global Loading Overlay di layout, hapus dari sini */}
       {/* Header & Sticky Action Bar */}
       <div className="sticky top-0 z-20 bg-white pb-2 mb-2 shadow-sm border-b border-gray-200">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -497,7 +505,7 @@ export default function TransaksiPage() {
         <CardContent>
     {loading ? (
       <div className="w-full flex items-center justify-center py-8">
-        <span className="text-gray-500 text-sm">Loading data transaksi...</span>
+        <span className="text-blue-600 text-base animate-pulse font-semibold">Loading...</span>
       </div>
     ) : data.length === 0 ? (
       <div className="w-full flex items-center justify-center py-8">
