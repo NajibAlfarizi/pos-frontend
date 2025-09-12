@@ -1,4 +1,4 @@
- /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // improve transaksi page
@@ -13,6 +13,7 @@ import {
   deleteTransaksi,
   exportTransaksiCSV,
   exportTransaksiExcel,
+  cetakStrukTransaksi,
 } from "@/lib/api/transaksiHelper";
 import { apiWithRefresh } from "@/lib/api/authHelper";
 import { useRouter } from "next/navigation";
@@ -25,7 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { getAllSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
-import { FileText, PlusCircle, BarChart3, Calendar, Search } from "lucide-react";
+import { FileText, PlusCircle, BarChart3, Calendar, Search, Printer, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 
 interface Transaksi {
@@ -38,7 +39,7 @@ interface Transaksi {
   tipe_pembayaran?: string;
   status_pembayaran?: string;
   due?: string;
-  sparepart?: { nama_barang: string; kategori?: string } | null;
+  sparepart?: { nama_barang: string; kategori?: string; kode_barang?: string } | null;
   user?: string;
 }
 
@@ -432,41 +433,55 @@ export default function TransaksiPage() {
         <Search size={16} className="absolute right-2 top-2 text-gray-400" />
         {filterBarangQuery && (
           <div className="absolute z-10 bg-white border rounded shadow w-full max-h-40 overflow-auto mt-1">
-            {filteredBarangFilter.length === 0 ? (
-              <div className="px-3 py-2 text-gray-400">Barang tidak ditemukan</div>
+          {filteredBarangFilter.length === 0 ? (
+            <div className="px-3 py-2 text-gray-400">Barang tidak ditemukan</div>
             ) : (
-              filteredBarangFilter.map((sp) => (
-                <div
-                  key={sp.id_sparepart}
-                  className="px-3 py-2 cursor-pointer hover:bg-blue-100"
-                  onClick={() => {
-                    setFilters({ ...filters, id_sparepart: sp.id_sparepart })
-                    setFilterBarangQuery(sp.nama_barang)
-                  }}
-                >
-                  {sp.nama_barang}
-                </div>
-              ))
-            )}
+            filteredBarangFilter.map((sp) => (
+            <div
+              key={sp.id_sparepart}
+              className="px-3 py-2 cursor-pointer hover:bg-blue-100"
+              onClick={() => {
+              setFilters({ ...filters, id_sparepart: sp.id_sparepart });
+              setFilterBarangQuery(sp.nama_barang);
+              }}
+            >
+          {sp.nama_barang}
           </div>
+          ))
         )}
+        </div>
+      )}
       </div>
 
       {/* Date Range pakai DatePicker */}
       <div className="flex items-center gap-2 w-[280px]">
         <DatePicker
           value={dateRange.from ? new Date(dateRange.from) : null}
-          onChange={(val: Date | null) =>
-            setDateRange({ ...dateRange, from: val?.toISOString().split("T")[0] || "" })
-          }
+          onChange={(val: Date | null) => {
+            if (val) {
+              const year = val.getFullYear();
+              const month = String(val.getMonth() + 1).padStart(2, '0');
+              const day = String(val.getDate()).padStart(2, '0');
+              setDateRange({ ...dateRange, from: `${year}-${month}-${day}` });
+            } else {
+              setDateRange({ ...dateRange, from: "" });
+            }
+          }}
           placeholder="Dari"
         />
         <span className="text-gray-500">-</span>
         <DatePicker
           value={dateRange.to ? new Date(dateRange.to) : null}
-          onChange={(val: Date | null) =>
-            setDateRange({ ...dateRange, to: val?.toISOString().split("T")[0] || "" })
-          }
+          onChange={(val: Date | null) => {
+            if (val) {
+              const year = val.getFullYear();
+              const month = String(val.getMonth() + 1).padStart(2, '0');
+              const day = String(val.getDate()).padStart(2, '0');
+              setDateRange({ ...dateRange, to: `${year}-${month}-${day}` });
+            } else {
+              setDateRange({ ...dateRange, to: "" });
+            }
+          }}
           placeholder="Sampai"
         />
       </div>
@@ -534,7 +549,7 @@ export default function TransaksiPage() {
                 key={trx.id_transaksi}
                 className="hover:bg-gray-50 transition-colors text-xs"
               >
-                <TableCell className="px-1 py-1 text-center w-8">{idx + 1}</TableCell>
+                <TableCell className="px-1 py-1 text-center w-8">{(page - 1) * limit + idx + 1}</TableCell>
                 <TableCell className="px-1 py-1 text-center w-16">{(() => {const d = new Date(trx.tanggal);return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`})()}</TableCell>
                 <TableCell className="px-1 py-1 text-center w-20 truncate" title={trx.sparepart?.nama_barang}>{trx.sparepart?.nama_barang || "-"}</TableCell>
                 <TableCell className="px-1 py-1 text-center w-16 truncate" title={trx.sparepart?.kategori}>{trx.sparepart?.kategori || "-"}</TableCell>
@@ -1060,27 +1075,129 @@ export default function TransaksiPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Detail */}
+      {/* Modal Detail Transaksi - Preview Struk */}
       <Dialog open={openDetail} onOpenChange={setOpenDetail}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Detail Transaksi</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-md rounded-2xl shadow-xl">
+          <DialogHeader className="border-b pb-3 flex items-center justify-between">
+            <DialogTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Printer size={22} className="text-blue-600" /> Preview Struk Transaksi
+            </DialogTitle>
+          </DialogHeader>
           {selected && (
-            <div className="space-y-2">
-              <p><b>ID:</b> {selected.id_transaksi}</p>
-              <p><b>Barang:</b> {selected.sparepart?.nama_barang}</p>
-              <p><b>Kategori:</b> {selected.sparepart?.kategori || '-'}</p>
-              <p><b>Jumlah:</b> {selected.jumlah}</p>
-              <p><b>Total:</b> Rp {selected.harga_total.toLocaleString()}</p>
-              <p><b>Tanggal:</b> {new Date(selected.tanggal).toLocaleString()}</p>
-              <p><b>Tipe:</b> {selected.tipe}</p>
-              <p><b>Pembayaran:</b> {selected.tipe_pembayaran}</p>
-              <p><b>Status:</b> {selected.status_pembayaran}</p>
+            <div className="bg-white p-6 rounded-lg shadow-inner border flex flex-col gap-2 text-sm font-mono">
+              <div className="text-center text-xl font-bold mb-2 tracking-widest">ChiCha Mobile</div>
+              <div className="text-center text-sm tracking-widest"> Jl. Abdul Muis Pasar Baru Kota Padang Panjang</div>
+              <div className="flex justify-between"><span>Tanggal:</span> <span>{new Date(selected.tanggal).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span>Barang:</span> <span>{selected.sparepart?.nama_barang || '-'}</span></div>
+              <div className="flex justify-between"><span>Kategori:</span> <span>{selected.sparepart?.kategori || '-'}</span></div>
+              <div className="flex justify-between"><span>Jumlah:</span> <span>{selected.jumlah}</span></div>
+              <div className="flex justify-between"><span>Harga Satuan:</span> <span>Rp {selected.harga_total && selected.jumlah ? (selected.harga_total/selected.jumlah).toLocaleString() : '-'}</span></div>
+              <div className="flex justify-between font-bold border-t pt-2"><span>Total:</span> <span>Rp {selected.harga_total.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span>Tipe:</span> <span>{selected.tipe}</span></div>
+              <div className="flex justify-between"><span>Pembayaran:</span> <span>{selected.tipe_pembayaran}</span></div>
+              <div className="flex justify-between"><span>Status:</span> <span>{selected.status_pembayaran}</span></div>
               {selected.tipe_pembayaran === 'kredit' && (
-                <>
-                  <p><b>Due Date:</b> {selected.due}</p>
-                </>
+                <div className="flex justify-between"><span>Due Date:</span> <span>{selected.due}</span></div>
               )}
-              <p><b>Keterangan:</b> {selected.keterangan}</p>
+              <div className="flex justify-between"><span>Keterangan:</span> <span>{selected.keterangan || '-'}</span></div>
+              <div className="text-center text-xs text-gray-500 mt-4">Terima kasih telah bertransaksi!</div>
+                <div className="flex gap-3 justify-end pt-4 border-t mt-4">
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition"
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        const blob = await cetakStrukTransaksi(token, selected.id_transaksi);
+                        const url = window.URL.createObjectURL(new Blob([blob]));
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `struk-transaksi-${selected.id_transaksi}.pdf`;
+                        a.click();
+                        setLoading(false);
+                      } catch {
+                        setLoading(false);
+                        toast.error("Gagal mencetak struk");
+                      }
+                    }}
+                    type="button"
+                  >
+                    <Printer size={18} /> Cetak Struk
+                  </button>
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700 transition"
+                    onClick={async () => {
+                      try {
+                        // Simpan preview struk sebagai PDF (client-side)
+                        // Gunakan window.print() pada elemen tertentu
+                        // Buat window baru dengan isi struk, lalu print
+                        const strukContent = document.getElementById('struk-preview-content');
+                        if (strukContent) {
+                          const printWindow = window.open('', '', 'width=600,height=800');
+                          if (printWindow) {
+                            printWindow.document.write(`
+                              <html>
+                                <head>
+                                  <title>Struk Transaksi</title>
+                                  <style>
+                                    body { font-family: monospace; padding: 24px; }
+                                    .struk { max-width: 400px; margin: auto; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 24px; }
+                                    .struk-title { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 12px; letter-spacing: 2px; }
+                                    .struk-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+                                    .struk-total { font-weight: bold; border-top: 1px solid #ccc; padding-top: 8px; margin-top: 8px; }
+                                    .struk-footer { text-align: center; font-size: 12px; color: #888; margin-top: 18px; }
+                                  </style>
+                                </head>
+                                <body>
+                                  <div class="struk">
+                                    ${strukContent.innerHTML}
+                                  </div>
+                                </body>
+                              </html>
+                            `);
+                            printWindow.document.close();
+                            printWindow.focus();
+                            printWindow.print();
+                          } else {
+                            toast.error('Gagal membuka jendela print');
+                          }
+                        } else {
+                          toast.error('Gagal menemukan konten struk');
+                        }
+                      } catch {
+                        toast.error('Gagal simpan ke PDF');
+                      }
+                    }}
+                    type="button"
+                  >
+                    <Printer size={18} /> Simpan ke PDF
+                  </button>
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border text-gray-700 font-semibold hover:bg-gray-100 transition"
+                    onClick={() => setOpenDetail(false)}
+                    type="button"
+                  >
+                    <X size={18} /> Tutup
+                  </button>
+                </div>
+                {/* Tambahkan id pada konten struk untuk print/pdf */}
+                <div id="struk-preview-content" style={{display: 'none'}}>
+                  <div className="text-center text-xl font-bold mb-2 tracking-widest">POS SUPABASE</div>
+                  <div className="flex justify-between"><span>ID Transaksi:</span> <span>{selected.id_transaksi}</span></div>
+                  <div className="flex justify-between"><span>Tanggal:</span> <span>{new Date(selected.tanggal).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Barang:</span> <span>{selected.sparepart?.nama_barang || '-'}</span></div>
+                  <div className="flex justify-between"><span>Kategori:</span> <span>{selected.sparepart?.kategori || '-'}</span></div>
+                  <div className="flex justify-between"><span>Jumlah:</span> <span>{selected.jumlah}</span></div>
+                  <div className="flex justify-between"><span>Harga Satuan:</span> <span>Rp {selected.harga_total && selected.jumlah ? (selected.harga_total/selected.jumlah).toLocaleString() : '-'}</span></div>
+                  <div className="flex justify-between font-bold border-t pt-2"><span>Total:</span> <span>Rp {selected.harga_total.toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Tipe:</span> <span>{selected.tipe}</span></div>
+                  <div className="flex justify-between"><span>Pembayaran:</span> <span>{selected.tipe_pembayaran}</span></div>
+                  <div className="flex justify-between"><span>Status:</span> <span>{selected.status_pembayaran}</span></div>
+                  {selected.tipe_pembayaran === 'kredit' && (
+                    <div className="flex justify-between"><span>Due Date:</span> <span>{selected.due}</span></div>
+                  )}
+                  <div className="flex justify-between"><span>Keterangan:</span> <span>{selected.keterangan || '-'}</span></div>
+                  <div className="text-center text-xs text-gray-500 mt-4">Terima kasih telah bertransaksi!</div>
+                </div>
             </div>
           )}
         </DialogContent>
