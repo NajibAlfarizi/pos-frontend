@@ -8,17 +8,8 @@ self.addEventListener('activate', function(event) {
 });
 
 self.addEventListener('fetch', function(event) {
-  // Basic cache-first strategy
+  // Network-only strategy: always fetch from network, never cache
   event.respondWith(
-    caches.open('v1').then(function(cache) {
-      return cache.match(event.request).then(function(response) {
-        return response || fetch(event.request).then(function(networkResponse) {
-          if (event.request.method === 'GET' && networkResponse.ok) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        });
-      });
-    })
+    fetch(event.request)
   );
 });
