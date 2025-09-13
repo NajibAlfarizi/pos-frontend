@@ -311,7 +311,15 @@ export default function TransaksiPage() {
       setFormTipe("masuk");
       setFormTipePembayaran("cash");
       setFormDue("");
+      // Fetch latest transaksi and show detail for the newest item
       await fetchData();
+      // Find the latest transaksi (assuming sorted by tanggal desc)
+      setTimeout(() => {
+        if (data && data.length > 0) {
+          setSelected(data[0]);
+          setOpenDetail(true);
+        }
+      }, 300);
     } catch {
       toast.error("Gagal tambah transaksi");
     }
