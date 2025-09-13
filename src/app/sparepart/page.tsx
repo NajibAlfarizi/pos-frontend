@@ -60,6 +60,7 @@ const RupiahInput: React.FC<{ name: string; label: string; defaultValue?: number
 
 const SparepartPage: React.FC = () => {
   const [sparepartList, setSparepartList] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'low'>('all');
   const [search, setSearch] = useState('');
   const [filterKategori, setFilterKategori] = useState('');
   const [filterMerek, setFilterMerek] = useState('');
@@ -108,7 +109,6 @@ const SparepartPage: React.FC = () => {
   // Fetch sparepart list
   const fetchSparepart = useCallback(async () => {
     if (!token) return;
-    setLoading(true);
     try {
       let params: any = {};
       if (search) params.nama = search;
@@ -135,10 +135,8 @@ const SparepartPage: React.FC = () => {
       setSparepartList(result);
     } catch {
       setSparepartList([]);
-    } finally {
-      setLoading(false);
     }
-  }, [token, search, filterKategori, filterMerek, router, setLoading]);
+  }, [token, search, filterKategori, filterMerek, router]);
 
   useEffect(() => {
     const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
@@ -305,7 +303,7 @@ const SparepartPage: React.FC = () => {
 
   // UI
   return (
-    <div className="max-w-5xl mx-auto py-8 px-2">
+  <div className="max-w-5xl mx-auto py-8 px-2">
       <Toaster position="top-right" richColors />
       {/* Konfirmasi dialog simpan, edit, hapus */}
       <Dialog open={!!confirmModal?.open} onOpenChange={open => { if (!open) setConfirmModal(null); }}>
@@ -330,14 +328,12 @@ const SparepartPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Header & Actions */}
+      {/* Header & Actions + Tabs */}
       <div className="sticky top-0 z-10 bg-white pb-4 mb-4 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          {/* Title */}
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Manajemen Sparepart</h1>
           </div>
-          {/* Actions */}
           <div className="flex gap-3">
             <button
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-sm text-sm font-medium transition"
@@ -359,11 +355,24 @@ const SparepartPage: React.FC = () => {
             </button>
           </div>
         </div>
-
-        {/* Search & Filter */}
+        {/* Tabs */}
+        <div className="flex gap-2 mb-2">
+          <button
+            className={`px-4 py-2 rounded-t-lg font-medium border-b-2 transition ${activeTab === 'all' ? 'border-blue-600 text-blue-700 bg-blue-50' : 'border-transparent text-gray-600 bg-gray-100'}`}
+            onClick={() => setActiveTab('all')}
+          >
+            Semua Sparepart
+          </button>
+          <button
+            className={`px-4 py-2 rounded-t-lg font-medium border-b-2 transition ${activeTab === 'low' ? 'border-red-600 text-red-700 bg-red-50' : 'border-transparent text-gray-600 bg-gray-100'}`}
+            onClick={() => setActiveTab('low')}
+          >
+            Stok Rendah
+          </button>
+        </div>
+        {/* Search & Filter (shared) */}
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex flex-wrap gap-3 items-center">
-            {/* Search */}
             <div className="relative w-full sm:w-72">
               <input
                 type="text"
@@ -373,7 +382,6 @@ const SparepartPage: React.FC = () => {
                 onChange={e => setSearch(e.target.value)}
                 autoComplete="off"
               />
-              {/* Autocomplete dropdown */}
               {search && search.length > 0 && (
                 <div className="absolute left-0 top-full mt-1 bg-white border rounded-lg shadow-lg max-w-xs w-full sm:w-72 max-h-40 overflow-auto z-20">
                   {sparepartList
@@ -394,8 +402,6 @@ const SparepartPage: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {/* Kategori */}
             <select
               className="border px-3 py-2.5 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               value={filterKategori}
@@ -408,8 +414,6 @@ const SparepartPage: React.FC = () => {
                 </option>
               ))}
             </select>
-
-            {/* Merek */}
             <select
               className="border px-3 py-2.5 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               value={filterMerek}
@@ -425,7 +429,7 @@ const SparepartPage: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* Daftar Sparepart (CRUD) - halaman utama */}
+      {/* Daftar Sparepart (CRUD) - tabbed */}
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -443,58 +447,78 @@ const SparepartPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
-            {sparepartList.map((sparepart, idx) => (
-              <tr
-                key={sparepart.id_sparepart}
-                className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-              >
-                <td className="px-3 py-2 text-sm text-gray-700 text-center">{idx + 1}</td>
-                <td className="px-3 py-2 text-sm font-mono text-gray-600">{sparepart.kode_barang}</td>
-                <td className="px-3 py-2 text-sm font-medium text-gray-900 truncate max-w-[180px]">{sparepart.nama_barang}</td>
-                <td className="px-3 py-2 text-sm text-gray-700">
-                  {sparepart.kategori_nama || kategoriList.find(k => k.id_kategori_barang === sparepart.id_kategori_barang)?.nama_kategori || '-'}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-700">
-                  {sparepart.merek_nama || merekList.find(m => m.id_merek === sparepart.id_merek)?.nama_merek || '-'}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-900">{`Rp${formatRupiah(sparepart.harga_jual)}`}</td>
-                <td className="px-3 py-2 text-sm text-center">{sparepart.jumlah}</td>
-                <td className="px-3 py-2 text-sm text-center">{sparepart.terjual}</td>
-                <td className="px-3 py-2 text-sm text-center">
-                  {sparepart.sisa <= 2 ? (
-                    <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">
-                      {sparepart.sisa}
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
-                      {sparepart.sisa}
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-sm text-center">
-                  <div className="flex justify-center gap-2">
-                    <button
-                      className="px-2 py-1 text-xs rounded-md border border-blue-500 text-blue-600 hover:bg-blue-50"
-                      onClick={() => handleEdit(sparepart)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="px-2 py-1 text-xs rounded-md border border-gray-400 text-gray-600 hover:bg-gray-50"
-                      onClick={() => handleDetail(sparepart)}
-                    >
-                      Detail
-                    </button>
-                    <button
-                      className="px-2 py-1 text-xs rounded-md border border-red-500 text-red-600 hover:bg-red-50"
-                      onClick={() => handleDelete(sparepart.id_sparepart)}
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {(() => {
+              const filtered = (activeTab === 'all'
+                ? sparepartList
+                : sparepartList.filter(sp => sp.sisa <= 2)
+              ).filter(sp => {
+                // Filter by kategori & merek
+                const kategoriMatch = !filterKategori || sp.id_kategori_barang === filterKategori;
+                const merekMatch = !filterMerek || sp.id_merek === filterMerek;
+                // Search by nama_barang
+                const searchMatch = !search || sp.nama_barang.toLowerCase().includes(search.toLowerCase());
+                return kategoriMatch && merekMatch && searchMatch;
+              });
+              if (filtered.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={10} className="text-center py-8 text-gray-400 text-lg font-semibold">Tidak ada data sparepart</td>
+                  </tr>
+                );
+              }
+              return filtered.map((sparepart, idx) => (
+                <tr
+                  key={sparepart.id_sparepart}
+                  className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                >
+                  <td className="px-3 py-2 text-sm text-gray-700 text-center">{idx + 1}</td>
+                  <td className="px-3 py-2 text-sm font-mono text-gray-600">{sparepart.kode_barang}</td>
+                  <td className="px-3 py-2 text-sm font-medium text-gray-900 truncate max-w-[180px]">{sparepart.nama_barang}</td>
+                  <td className="px-3 py-2 text-sm text-gray-700">
+                    {sparepart.kategori_nama || kategoriList.find(k => k.id_kategori_barang === sparepart.id_kategori_barang)?.nama_kategori || '-'}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-700">
+                    {sparepart.merek_nama || merekList.find(m => m.id_merek === sparepart.id_merek)?.nama_merek || '-'}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-900">{`Rp${formatRupiah(sparepart.harga_jual)}`}</td>
+                  <td className="px-3 py-2 text-sm text-center">{sparepart.jumlah}</td>
+                  <td className="px-3 py-2 text-sm text-center">{sparepart.terjual}</td>
+                  <td className="px-3 py-2 text-sm text-center">
+                    {sparepart.sisa <= 2 ? (
+                      <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">
+                        {sparepart.sisa}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                        {sparepart.sisa}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-center">
+                    <div className="flex justify-center gap-2">
+                      <button
+                        className="px-2 py-1 text-xs rounded-md border border-blue-500 text-blue-600 hover:bg-blue-50"
+                        onClick={() => handleEdit(sparepart)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="px-2 py-1 text-xs rounded-md border border-gray-400 text-gray-600 hover:bg-gray-50"
+                        onClick={() => handleDetail(sparepart)}
+                      >
+                        Detail
+                      </button>
+                      <button
+                        className="px-2 py-1 text-xs rounded-md border border-red-500 text-red-600 hover:bg-red-50"
+                        onClick={() => handleDelete(sparepart.id_sparepart)}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ));
+            })()}
           </tbody>
         </table>
       </div>
