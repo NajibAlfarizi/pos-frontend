@@ -311,15 +311,34 @@ export default function TransaksiPage() {
       setFormTipe("masuk");
       setFormTipePembayaran("cash");
       setFormDue("");
-      // Fetch latest transaksi and show detail for the newest item
-      await fetchData();
-      // Find the latest transaksi (assuming sorted by tanggal desc)
-      setTimeout(() => {
-        if (data && data.length > 0) {
-          setSelected(data[0]);
-          setOpenDetail(true);
+      // Fetch latest transaksi and update table + show detail for the newest item
+      try {
+        const sendFilters = { ...filters };
+        if (sendFilters.tipe === "all") delete sendFilters.tipe;
+        if (filterDari) sendFilters.tanggal_mulai = filterDari;
+        if (filterSampai) {
+          const endDate = new Date(filterSampai);
+          endDate.setHours(23, 59, 59, 999);
+          const formattedEnd = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}T23:59:59`;
+          sendFilters.tanggal_selesai = formattedEnd;
         }
-      }, 300);
+        if (filterKategori) sendFilters.kategori = filterKategori;
+        const res = await apiWithRefresh(
+          (tok) => getTransaksi(tok, { ...sendFilters, page: 1, limit }),
+          token,
+          setToken,
+          () => {},
+          router
+        );
+        if (res.data) {
+          setData(res.data);
+          setTotal(res.total ?? 0);
+          if (res.data.length > 0) {
+            setSelected(res.data[0]);
+            setOpenDetail(true);
+          }
+        }
+      } catch {}
     } catch {
       toast.error("Gagal tambah transaksi");
     }
