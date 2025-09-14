@@ -6,16 +6,21 @@ import { getProfile, apiWithRefresh } from "@/lib/api/authHelper";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getRingkasanTransaksi } from "@/lib/api/transaksiHelper";
+import { getStatistikTransaksi } from "@/lib/api/transaksiHelper";
 import { CreditCard, ShoppingCart, ArrowDownCircle, ArrowUpCircle, DollarSign } from "lucide-react";
 
 const DashboardPage: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
   const [token, setToken] = useState<string>("");
   const [summary, setSummary] = useState<any>(null);
+  const [statistik, setStatistik] = useState<any>(null);
   const router = useRouter();
   const [clientDate, setClientDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
   useEffect(() => {
-    setClientDate(new Date().toLocaleDateString());
+  const today = new Date();
+  setClientDate(today.toLocaleDateString());
+  setSelectedDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
   }, []);
   // Import helper
 
@@ -30,76 +35,137 @@ const DashboardPage: React.FC = () => {
   }, [router]);
 
   useEffect(() => {
-    if (!token) return;
-    const fetchSummary = async () => {
+    if (!token || !selectedDate) return;
+    const fetchStatistik = async () => {
       try {
-        // Get ringkasan transaksi per hari
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const tanggal = `${yyyy}-${mm}-${dd}`;
         const data = await apiWithRefresh(
-          (t) => getRingkasanTransaksi(t, { tanggal }),
+          (t) => getStatistikTransaksi(t, { tanggal: selectedDate }),
           token,
           setToken,
           () => {},
           router
         );
-        setSummary(data);
+        setStatistik(data);
       } catch {
-        setSummary(null);
+        setStatistik(null);
       }
     };
-    fetchSummary();
-  }, [token, router]);
+    fetchStatistik();
+  }, [token, router, selectedDate]);
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-8">Dashboard POS Sparepart</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Penjualan Hari Ini (Rupiah) */}
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 items-center">
-          <DollarSign className="text-green-600 w-10 h-10 mb-2" />
-          <div className="text-lg font-semibold text-gray-700 mb-1">Penjualan Hari Ini</div>
-          <div className="text-2xl font-bold text-green-700">Rp{summary?.penjualan_hari_ini?.toLocaleString() ?? '-'}</div>
-        </div>
-        {/* Total Transaksi (Rupiah) */}
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 items-center">
-          <ShoppingCart className="text-blue-600 w-10 h-10 mb-2" />
-          <div className="text-lg font-semibold text-gray-700 mb-1">Total Transaksi</div>
-          <div className="text-2xl font-bold text-blue-700">Rp{summary?.total_transaksi_rupiah?.toLocaleString() ?? '-'}</div>
-        </div>
-        {/* Total Kredit (Rupiah) */}
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 items-center">
-          <CreditCard className="text-yellow-600 w-10 h-10 mb-2" />
-          <div className="text-lg font-semibold text-gray-700 mb-1">Total Kredit</div>
-          <div className="text-2xl font-bold text-yellow-700">Rp{summary?.total_kredit?.toLocaleString() ?? '-'}</div>
+    <div className="max-w-5xl mx-auto py-10 px-4">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-extrabold text-blue-700 tracking-tight">Dashboard POS Sparepart</h1>
+        <div className="flex items-center gap-2">
+          <label htmlFor="statistik-date" className="font-semibold text-gray-700">Tanggal:</label>
+          <input
+            id="statistik-date"
+            type="date"
+            className="border rounded-lg px-3 py-2 text-base shadow focus:outline-blue-500"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+          />
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Jumlah Barang Masuk */}
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 items-center">
-          <ArrowDownCircle className="text-blue-600 w-10 h-10 mb-2" />
-          <div className="text-lg font-semibold text-gray-700 mb-1">Jumlah Barang Masuk</div>
-          <div className="text-2xl font-bold text-blue-700">{summary?.jumlah_masuk ?? '-'}</div>
+
+      {/* Summary Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+        <div className="stat-card bg-green-50">
+          <div className="stat-icon bg-green-200">
+            <DollarSign className="text-green-600 w-10 h-10" />
+          </div>
+          <div className="stat-label">Penjualan Hari Ini</div>
+          <div className="stat-value text-green-700">Rp{statistik?.penjualan_hari_ini?.toLocaleString() ?? '-'}</div>
         </div>
-        {/* Jumlah Barang Keluar */}
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 items-center">
-          <ArrowUpCircle className="text-red-600 w-10 h-10 mb-2" />
-          <div className="text-lg font-semibold text-gray-700 mb-1">Jumlah Barang Keluar</div>
-          <div className="text-2xl font-bold text-red-700">{summary?.jumlah_keluar ?? '-'}</div>
-        </div>
-        {/* Jumlah Barang Kredit */}
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 items-center">
-          <CreditCard className="text-yellow-600 w-10 h-10 mb-2" />
-          <div className="text-lg font-semibold text-gray-700 mb-1">Jumlah Barang Kredit</div>
-          <div className="text-2xl font-bold text-yellow-700">{summary?.jumlah_kredit ?? '-'}</div>
+        <div className="stat-card bg-yellow-50">
+          <div className="stat-icon bg-yellow-200">
+            <CreditCard className="text-yellow-600 w-10 h-10" />
+          </div>
+          <div className="stat-label">Total Kredit</div>
+          <div className="stat-value text-yellow-700">Rp{statistik?.total_kredit?.toLocaleString() ?? '-'}</div>
         </div>
       </div>
-      <div className="bg-white rounded shadow p-6">
-  <div className="text-gray-600 text-sm">Data di atas adalah ringkasan transaksi hari ini ({clientDate}).</div>
+
+      {/* Detail Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div className="stat-card bg-blue-50">
+          <div className="stat-icon bg-blue-200">
+            <ArrowDownCircle className="text-blue-600 w-10 h-10" />
+          </div>
+          <div className="stat-label">Jumlah Barang Masuk</div>
+          <div className="stat-value text-blue-700">{statistik?.jumlah_barang_masuk ?? '-'}</div>
+        </div>
+        <div className="stat-card bg-red-50">
+          <div className="stat-icon bg-red-200">
+            <ArrowUpCircle className="text-red-600 w-10 h-10" />
+          </div>
+          <div className="stat-label">Jumlah Barang Keluar</div>
+          <div className="stat-value text-red-700">{statistik?.jumlah_barang_keluar ?? '-'}</div>
+        </div>
+        <div className="stat-card bg-yellow-50">
+          <div className="stat-icon bg-yellow-200">
+            <CreditCard className="text-yellow-600 w-10 h-10" />
+          </div>
+          <div className="stat-label">Jumlah Barang Kredit</div>
+          <div className="stat-value text-yellow-700">{statistik?.jumlah_barang_kredit ?? '-'}</div>
+        </div>
       </div>
+
+      {/* Insight Section */}
+      <div className="bg-white rounded-xl shadow p-6 text-center mb-6">
+        <div className="text-gray-600 text-base font-medium mb-2">Data di atas adalah statistik transaksi pada tanggal <span className="font-bold text-blue-700">{selectedDate.split('-').reverse().join('/')}</span>.</div>
+        <div className="text-sm text-gray-500">Tips: Gunakan filter tanggal untuk melihat performa penjualan dan stok barang pada hari tertentu.</div>
+      </div>
+
+      {/* Trend/Insight (dummy, can be replaced with chart) */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl shadow p-6 text-center">
+        <div className="text-lg font-bold text-blue-700 mb-2">Insight Otomatis</div>
+        <div className="text-base text-gray-700">{statistik?.penjualan_hari_ini > 0
+          ? `Penjualan hari ini cukup baik, total transaksi keluar Rp${statistik?.penjualan_hari_ini?.toLocaleString()}.`
+          : 'Belum ada penjualan pada tanggal ini.'}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .stat-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 2rem 1rem;
+          border-radius: 1.5rem;
+          box-shadow: 0 4px 24px 0 rgba(0,0,0,0.07);
+          transition: box-shadow 0.2s, transform 0.2s;
+          background: var(--tw-bg-opacity);
+        }
+        .stat-card:hover {
+          box-shadow: 0 8px 32px 0 rgba(0,0,0,0.12);
+          transform: translateY(-2px) scale(1.03);
+        }
+        .stat-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 4rem;
+          height: 4rem;
+          border-radius: 1rem;
+          margin-bottom: 1rem;
+        }
+        .stat-label {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 0.5rem;
+          text-align: center;
+        }
+        .stat-value {
+          font-size: 2.2rem;
+          font-weight: 800;
+          margin-bottom: 0.5rem;
+          text-align: center;
+        }
+      `}</style>
     </div>
   );
 };

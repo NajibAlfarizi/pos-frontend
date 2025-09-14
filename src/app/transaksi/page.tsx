@@ -145,6 +145,9 @@ export default function TransaksiPage() {
         sendFilters.tanggal_selesai = formattedEnd;
       }
       if (filterKategori) sendFilters.kategori = filterKategori;
+      // Remove tipe_pembayaran and status_pembayaran from filters if present
+      if ('tipe_pembayaran' in sendFilters) delete sendFilters.tipe_pembayaran;
+      if ('status_pembayaran' in sendFilters) delete sendFilters.status_pembayaran;
       const res = await apiWithRefresh(
         (tok) => getTransaksi(tok, { ...sendFilters, page, limit }),
         token,
@@ -1134,7 +1137,14 @@ export default function TransaksiPage() {
                     onClick={async () => {
                       try {
                         setLoading(true);
-                        const blob = await cetakStrukTransaksi(token, selected.id_transaksi);
+                        // Pastikan cetakStrukTransaksi menggunakan POST method
+                        const blob = await apiWithRefresh(
+                          (tok) => cetakStrukTransaksi(tok, selected.id_transaksi),
+                          token,
+                          setToken,
+                          () => {},
+                          router
+                        );
                         const url = window.URL.createObjectURL(new Blob([blob]));
                         const a = document.createElement("a");
                         a.href = url;
