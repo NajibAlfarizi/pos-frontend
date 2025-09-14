@@ -153,9 +153,24 @@ export const deleteTransaksi = async (token: string, id: string) => {
 
 export const cetakStrukTransaksi = async (token: string, id: string) => {
   try {
-    const res = await axios.get(`${API_URL}/transaksi/${id}/cetak-struk`, {
+    const res = await axios.post(`${API_URL}/transaksi/${id}/cetak-struk`, {}, {
       headers: { Authorization: `Bearer ${token}` },
       responseType: "blob"
+    });
+    return res.data;
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      window.location.href = '/login';
+    }
+    throw err;
+  }
+}
+
+export const getStatistikTransaksi = async (token: string, params?: any) => {
+  try {
+    const res = await axios.get(`${API_URL}/transaksi/statistik`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params
     });
     return res.data;
   } catch (err: any) {
