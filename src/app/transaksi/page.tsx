@@ -1139,7 +1139,7 @@ export default function TransaksiPage() {
                     onClick={async () => {
                       try {
                         setLoading(true);
-                        // Pastikan cetakStrukTransaksi menggunakan POST method
+                        // Cetak struk transaksi via endpoint GET /transaksi/:id/struk-pdf
                         const blob = await apiWithRefresh(
                           (tok) => cetakStrukTransaksi(tok, selected.id_transaksi),
                           token,
