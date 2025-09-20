@@ -790,7 +790,8 @@ export default function TransaksiPage() {
                   min={1}
                   value={formJumlah === 0 ? "" : formJumlah}
                   onChange={e => {
-                    const val = e.target.value.replace(/^0+/, "");
+                    const raw = e.target.value ?? "";
+                    const val = typeof raw === "string" ? raw.replace(/^0+/, "") : "";
                     setFormJumlah(val === "" ? 0 : Number(val));
                   }}
                   required
@@ -948,7 +949,8 @@ export default function TransaksiPage() {
                   min={1}
                   value={editJumlah === 0 ? "" : editJumlah}
                   onChange={e => {
-                    const val = e.target.value.replace(/^0+/, "");
+                    const raw = e.target.value ?? "";
+                    const val = typeof raw === "string" ? raw.replace(/^0+/, "") : "";
                     setEditJumlah(val === "" ? 0 : Number(val));
                   }}
                   required

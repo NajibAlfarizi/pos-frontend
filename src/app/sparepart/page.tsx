@@ -22,12 +22,18 @@ import { useGlobalLoading } from '../GlobalLoadingContext';
 
 // Helper for formatting and parsing rupiah
 function formatRupiah(num: string | number) {
-  let str = typeof num === 'number' ? num.toString() : num.replace(/[^\d]/g, '');
+  let str = '';
+  if (typeof num === 'number') {
+    str = num.toString();
+  } else if (typeof num === 'string') {
+    str = num ? num.replace(/[^\d]/g, '') : '';
+  }
   if (!str) return '';
   return str.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 function parseRupiah(str: string) {
+  if (typeof str !== 'string') return '';
   return str.replace(/\./g, '');
 }
 
@@ -50,7 +56,8 @@ const RupiahInput: React.FC<{ name: string; label: string; defaultValue?: number
       value={value}
       onChange={e => {
         // Only allow numbers
-        const raw = e.target.value.replace(/[^\d]/g, '');
+        const val = e.target.value;
+        const raw = typeof val === 'string' ? val.replace(/[^\d]/g, '') : '';
         setValue(formatRupiah(raw));
       }}
       autoComplete="off"
