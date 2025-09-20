@@ -153,7 +153,7 @@ export const deleteTransaksi = async (token: string, id: string) => {
 
 export const cetakStrukTransaksi = async (token: string, id: string) => {
   try {
-    const res = await axios.post(`${API_URL}/transaksi/${id}/cetak-struk`, {}, {
+    const res = await axios.get(`${API_URL}/transaksi/${id}/struk-pdf`, {
       headers: { Authorization: `Bearer ${token}` },
       responseType: "blob"
     });
