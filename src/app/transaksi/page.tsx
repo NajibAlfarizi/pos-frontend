@@ -14,6 +14,7 @@ import {
   exportTransaksiCSV,
   exportTransaksiExcel,
   cetakStrukTransaksi,
+  getStrukHTML,
 } from "@/lib/api/transaksiHelper";
 import { apiWithRefresh } from "@/lib/api/authHelper";
 import { useRouter } from "next/navigation";
@@ -1133,13 +1134,50 @@ export default function TransaksiPage() {
               )}
               <div className="flex justify-between"><span>Keterangan:</span> <span>{selected.keterangan || '-'}</span></div>
               <div className="text-center text-xs text-gray-500 mt-4">Terima kasih telah bertransaksi!</div>
-                <div className="flex gap-3 justify-end pt-4 border-t mt-4">
+                <div className="flex gap-2 justify-end pt-4 border-t mt-4">
                   <button
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition text-sm"
                     onClick={async () => {
                       try {
                         setLoading(true);
-                        // Cetak struk transaksi via endpoint GET /transaksi/:id/struk-pdf
+                        // Ambil HTML dari endpoint dengan token
+                        const htmlContent = await apiWithRefresh(
+                          (tok) => getStrukHTML(tok, selected.id_transaksi),
+                          token,
+                          setToken,
+                          () => {},
+                          router
+                        );
+                        
+                        // Buka window baru dengan HTML dan auto-print
+                        const printWindow = window.open('', '_blank', 'width=800,height=600');
+                        if (printWindow) {
+                          printWindow.document.write(htmlContent);
+                          printWindow.document.close();
+                          printWindow.focus();
+                          // Auto print setelah load
+                          printWindow.onload = () => {
+                            printWindow.print();
+                          };
+                        } else {
+                          toast.error('Gagal membuka jendela print');
+                        }
+                        setLoading(false);
+                      } catch {
+                        setLoading(false);
+                        toast.error('Gagal mencetak struk');
+                      }
+                    }}
+                    type="button"
+                  >
+                    <Printer size={16} /> Print HTML
+                  </button>
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700 transition text-sm"
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        // Download PDF dengan token
                         const blob = await apiWithRefresh(
                           (tok) => cetakStrukTransaksi(tok, selected.id_transaksi),
                           token,
@@ -1152,70 +1190,24 @@ export default function TransaksiPage() {
                         a.href = url;
                         a.download = `struk-transaksi-${selected.id_transaksi}.pdf`;
                         a.click();
+                        window.URL.revokeObjectURL(url);
                         setLoading(false);
+                        toast.success('Struk PDF berhasil diunduh');
                       } catch {
                         setLoading(false);
-                        toast.error("Gagal mencetak struk");
+                        toast.error('Gagal mengunduh PDF');
                       }
                     }}
                     type="button"
                   >
-                    <Printer size={18} /> Cetak Struk
+                    <Printer size={16} /> Download PDF
                   </button>
                   <button
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700 transition"
-                    onClick={async () => {
-                      try {
-                        // Simpan preview struk sebagai PDF (client-side)
-                        // Gunakan window.print() pada elemen tertentu
-                        // Buat window baru dengan isi struk, lalu print
-                        const strukContent = document.getElementById('struk-preview-content');
-                        if (strukContent) {
-                          const printWindow = window.open('', '', 'width=600,height=800');
-                          if (printWindow) {
-                            printWindow.document.write(`
-                              <html>
-                                <head>
-                                  <title>Struk Transaksi</title>
-                                  <style>
-                                    body { font-family: monospace; padding: 24px; }
-                                    .struk { max-width: 400px; margin: auto; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 24px; }
-                                    .struk-title { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 12px; letter-spacing: 2px; }
-                                    .struk-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
-                                    .struk-total { font-weight: bold; border-top: 1px solid #ccc; padding-top: 8px; margin-top: 8px; }
-                                    .struk-footer { text-align: center; font-size: 12px; color: #888; margin-top: 18px; }
-                                  </style>
-                                </head>
-                                <body>
-                                  <div class="struk">
-                                    ${strukContent.innerHTML}
-                                  </div>
-                                </body>
-                              </html>
-                            `);
-                            printWindow.document.close();
-                            printWindow.focus();
-                            printWindow.print();
-                          } else {
-                            toast.error('Gagal membuka jendela print');
-                          }
-                        } else {
-                          toast.error('Gagal menemukan konten struk');
-                        }
-                      } catch {
-                        toast.error('Gagal simpan ke PDF');
-                      }
-                    }}
-                    type="button"
-                  >
-                    <Printer size={18} /> Simpan ke PDF
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border text-gray-700 font-semibold hover:bg-gray-100 transition"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border text-gray-700 font-semibold hover:bg-gray-100 transition text-sm"
                     onClick={() => setOpenDetail(false)}
                     type="button"
                   >
-                    <X size={18} /> Tutup
+                    <X size={16} /> Tutup
                   </button>
                 </div>
                 {/* Tambahkan id pada konten struk untuk print/pdf */}
