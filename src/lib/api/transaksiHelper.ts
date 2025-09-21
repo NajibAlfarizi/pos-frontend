@@ -166,6 +166,20 @@ export const cetakStrukTransaksi = async (token: string, id: string) => {
   }
 }
 
+export const getStrukHTML = async (token: string, id: string) => {
+  try {
+    const res = await axios.get(`${API_URL}/transaksi/${id}/struk-html`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.data;
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      window.location.href = '/login';
+    }
+    throw err;
+  }
+}
+
 export const getStatistikTransaksi = async (token: string, params?: any) => {
   try {
     const res = await axios.get(`${API_URL}/transaksi/statistik`, {
