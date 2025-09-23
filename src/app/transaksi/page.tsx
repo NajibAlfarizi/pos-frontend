@@ -8,7 +8,6 @@ import { useGlobalLoading } from "../GlobalLoadingContext";
 import React from "react";
 import {
   getTransaksi,
-  addTransaksi,
   updateTransaksi,
   deleteTransaksi,
   exportTransaksiCSV,
@@ -27,7 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { getAllSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
-import { FileText, PlusCircle, BarChart3, Calendar, Search, Printer, X } from "lucide-react";
+import { FileText, BarChart3, Calendar, Search, Printer, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 
 interface Transaksi {
@@ -40,846 +39,759 @@ interface Transaksi {
   tipe_pembayaran?: string;
   status_pembayaran?: string;
   due?: string;
+  id_sparepart?: string; // Untuk transaksi format lama
+  detail_barang?: Array<{
+    id_sparepart: string;
+    nama_barang?: string;
+    jumlah: number;
+    harga_satuan: number;
+    harga_total: number;
+    eceran: boolean;
+  }>;
   sparepart?: { nama_barang: string; kategori?: string; kode_barang?: string } | null;
   user?: string;
 }
 
 export default function TransaksiPage() {
   const { loading, setLoading } = useGlobalLoading();
+  
   // Konfirmasi hapus
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteId, setDeleteId] = useState<string>("");
-  // State untuk modal edit
-  const [openEditForm, setOpenEditForm] = useState(false);
-  const [editBarang, setEditBarang] = useState<string>("");
-  const [editJumlah, setEditJumlah] = useState<number>(1);
-  const [editKeterangan, setEditKeterangan] = useState<string>("");
-  const [editTipe, setEditTipe] = useState<string>("masuk");
-  const [editId, setEditId] = useState<string>("");
-  const [showEditConfirm, setShowEditConfirm] = useState(false);
-  const [data, setData] = useState<Transaksi[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
-  // Hapus state loading lokal, gunakan global loading
-  const [filters, setFilters] = useState<any>({});
-  const [filterDari, setFilterDari] = useState<string>("");
-  const [filterSampai, setFilterSampai] = useState<string>("");
-  const [filterKategori, setFilterKategori] = useState<string>("");
-  const [kategoriList, setKategoriList] = useState<any[]>([]);
-  const [openForm, setOpenForm] = useState(false);
-  const [formBarang, setFormBarang] = useState<string>("");
-  const [formJumlah, setFormJumlah] = useState<number>(1);
-  const [formKeterangan, setFormKeterangan] = useState<string>("");
-  const [formTipe, setFormTipe] = useState<string>("masuk");
-  const [formKategori, setFormKategori] = useState<string>("");
-  const [formMerek, setFormMerek] = useState<string>("");
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [openDetail, setOpenDetail] = useState(false);
-  const [selected, setSelected] = useState<Transaksi | null>(null);
-  // Faktur preview
-  // Faktur/print feature removed
-  const [token, setToken] = useState<string>("");
-  const [sparepartList, setSparepartList] = useState<any[]>([]);
+  const [deleteId, setDeleteId] = useState("");
+
+  // Export
   const [showExport, setShowExport] = useState(false);
-  // State untuk autocomplete barang filter
-  const [filterBarangQuery, setFilterBarangQuery] = useState("");
-  const filteredBarangFilter = filterBarangQuery.trim() === ""
-    ? sparepartList
-    : sparepartList.filter(sp =>
-        sp.nama_barang.toLowerCase().includes(filterBarangQuery.toLowerCase())
-      );
-  // State untuk date range picker
-  const [dateRange, setDateRange] = useState<{from: string, to: string}>({from: "", to: ""});
+
+  // Data
+  const [transaksiList, setTransaksiList] = useState<Transaksi[]>([]);
+  const [filteredTransaksi, setFilteredTransaksi] = useState<Transaksi[]>([]);
+  const [sparepartList, setSparepartList] = useState<any[]>([]);
+  const [kategoriList, setKategoriList] = useState<any[]>([]);
+  const [merekList, setMerekList] = useState<any[]>([]);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10); // Kembali ke 10 agar pagination muncul
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalData, setTotalData] = useState(0);
+
+  // Filter
+  const [filterTipe, setFilterTipe] = useState("all");
+  const [filterPembayaran, setFilterPembayaran] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [search, setSearch] = useState("");
+  const [dateRange, setDateRange] = useState<{ startDate: Date | null; endDate: Date | null }>({
+    startDate: null,
+    endDate: null,
+  });
+
+  // Modal edit
+  const [openEditForm, setOpenEditForm] = useState(false);
+  const [selectedTransaksi, setSelectedTransaksi] = useState<Transaksi | null>(null);
+  const [editForm, setEditForm] = useState({
+    keterangan: "",
+    tipe_pembayaran: "",
+    status_pembayaran: "",
+    due: "",
+  });
+
+  // Modal detail
+  const [openDetailModal, setOpenDetailModal] = useState(false);
+  const [detailTransaksi, setDetailTransaksi] = useState<Transaksi | null>(null);
+
   const router = useRouter();
-  // State untuk pembayaran
-  const [formTipePembayaran, setFormTipePembayaran] = useState<string>("cash");
-  const [formDue, setFormDue] = useState<string>("");
-  const [editTipePembayaran, setEditTipePembayaran] = useState<string>("cash");
-  const [editStatusPembayaran, setEditStatusPembayaran] = useState<string>("belum lunas");
-  const [editDue, setEditDue] = useState<string>("");
-  // Fetch sparepart & kategori list for filter dropdown
-  useEffect(() => {
-    if (!token) return;
-    const fetchSparepartKategori = async () => {
-      try {
-        const res = await apiWithRefresh(getAllSparepart, token, setToken, () => {}, router);
-        setSparepartList(Array.isArray(res) ? res : []);
-      } catch {
-        setSparepartList([]);
-      }
-      try {
-        const kategori = await apiWithRefresh(getAllKategoriBarang, token, setToken, () => {}, router);
-        setKategoriList(Array.isArray(kategori) ? kategori : []);
-      } catch {
-        setKategoriList([]);
-      }
-    };
-    fetchSparepartKategori();
-  }, [token, router]);
 
-  useEffect(() => {
-    // Ambil token dari localStorage (user.access_token)
-    const userStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-    if (!userStr) {
-      router.replace("/login");
-      return;
-    }
+  // Load data
+  const loadData = async () => {
     try {
+      setLoading(true);
+      
+      // Ambil token dari localStorage
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        router.push("/login");
+        return;
+      }
+      
       const user = JSON.parse(userStr);
-      setToken(user.access_token);
-    } catch {
-      router.replace("/login");
-    }
-  }, [router]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const sendFilters = { ...filters };
-      if (sendFilters.tipe === "all") delete sendFilters.tipe;
-      if (filterDari) sendFilters.tanggal_mulai = filterDari;
-      if (filterSampai) {
-        const endDate = new Date(filterSampai);
-        endDate.setHours(23, 59, 59, 999);
-        const formattedEnd = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}T23:59:59`;
-        sendFilters.tanggal_selesai = formattedEnd;
+      const token = user.access_token;
+      
+      if (!token) {
+        router.push("/login");
+        return;
       }
-      if (filterKategori) sendFilters.kategori = filterKategori;
-      // Remove tipe_pembayaran and status_pembayaran from filters if present
-      if ('tipe_pembayaran' in sendFilters) delete sendFilters.tipe_pembayaran;
-      if ('status_pembayaran' in sendFilters) delete sendFilters.status_pembayaran;
-      const res = await apiWithRefresh(
-        (tok) => getTransaksi(tok, { ...sendFilters, page, limit }),
-        token,
-        setToken,
-        () => {},
-        router
-      );
-      setData(res.data);
-      setTotal(res.total);
-    } catch (e) {
-      toast.error("Gagal memuat transaksi");
+      
+      const data = await getTransaksi(token, {
+        page: 1,
+        limit: 1000 // Ambil data dalam jumlah besar
+      });
+      console.log("Response dari API:", data);
+      
+      // API mengembalikan { data: [...], total: number }
+      let transaksiArray = [];
+      if (data && Array.isArray(data.data)) {
+        transaksiArray = data.data;
+        console.log("Data loaded successfully, length:", data.data.length);
+        console.log("Total records:", data.total);
+        
+        // Debug: cek struktur beberapa transaksi
+        console.log("Sample transaksi structures:");
+        data.data.slice(0, 5).forEach((trx: any, idx: number) => {
+          console.log(`Transaksi ${idx + 1}:`, {
+            id: trx.id_transaksi,
+            detail_barang: trx.detail_barang,
+            id_sparepart: trx.id_sparepart,
+            has_detail: !!(trx.detail_barang && trx.detail_barang.length > 0),
+            has_id_sparepart: !!trx.id_sparepart
+          });
+        });
+      } else if (Array.isArray(data)) {
+        transaksiArray = data;
+        console.log("Data is direct array, length:", data.length);
+      } else {
+        console.error("Data transaksi tidak valid:", data);
+        transaksiArray = [];
+      }
+      
+      setTransaksiList(transaksiArray);
+      setFilteredTransaksi(transaksiArray);
+      setTotalData(transaksiArray.length);
+      setTotalPages(Math.ceil(transaksiArray.length / limit));
+    } catch (error) {
+      console.error("Gagal memuat data transaksi:", error);
+      toast.error("Gagal memuat data transaksi");
+      setTransaksiList([]);
+      setFilteredTransaksi([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  useEffect(() => {
-    if (!token) return;
-    fetchData();
-  }, [token, page, filters]);
-
-  const handleDelete = async (id: string) => {
-    setShowDeleteConfirm(false);
-    setLoading(true);
+  // Load sparepart dan kategori
+  const loadSparepartData = async () => {
     try {
-      await apiWithRefresh(
-        (tok) => deleteTransaksi(tok, id),
-        token,
-        setToken,
-        () => {},
-        router
-      );
-      setDeleteId("");
-      await fetchData();
-    } catch {
-      toast.error("Gagal menghapus transaksi");
+      // Ambil token dari localStorage
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        router.push("/login");
+        return;
+      }
+      
+      const user = JSON.parse(userStr);
+      const token = user.access_token;
+      
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      
+      const [sparepartData, kategoriData] = await Promise.all([
+        getAllSparepart(token),
+        getAllKategoriBarang(token),
+      ]);
+      
+      console.log("Sparepart data loaded:", sparepartData);
+      setSparepartList(Array.isArray(sparepartData) ? sparepartData : []);
+      setKategoriList(Array.isArray(kategoriData) ? kategoriData : []);
+    } catch (error) {
+      console.error("Gagal memuat data sparepart/kategori:", error);
     }
-    setLoading(false);
   };
 
-  // Handler untuk buka modal edit dan isi data
-  const openEditModal = (trx: Transaksi) => {
-    setEditId(trx.id_transaksi);
-    setEditBarang(trx.sparepart?.nama_barang ? (sparepartList.find(sp => sp.nama_barang === trx.sparepart?.nama_barang)?.id_sparepart || "") : "");
-    setEditJumlah(trx.jumlah);
-    setEditKeterangan(trx.keterangan || "");
-    setEditTipe(trx.tipe);
-    setEditTipePembayaran(trx.tipe_pembayaran || "cash");
-    setEditStatusPembayaran(trx.status_pembayaran || "belum lunas");
-    setEditDue(trx.due || "");
+  // Filter transaksi
+  const applyFilters = () => {
+    let filtered = [...transaksiList];
+
+    // Filter berdasarkan pencarian
+    if (search.trim()) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter(trx =>
+        trx.keterangan?.toLowerCase().includes(searchLower) ||
+        trx.id_transaksi.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filter berdasarkan tipe
+    if (filterTipe && filterTipe !== "all") {
+      filtered = filtered.filter(trx => trx.tipe === filterTipe);
+    }
+
+    // Filter berdasarkan pembayaran
+    if (filterPembayaran && filterPembayaran !== "all") {
+      filtered = filtered.filter(trx => trx.tipe_pembayaran === filterPembayaran);
+    }
+
+    // Filter berdasarkan status
+    if (filterStatus && filterStatus !== "all") {
+      filtered = filtered.filter(trx => trx.status_pembayaran === filterStatus);
+    }
+
+    // Filter berdasarkan tanggal
+    if (dateRange.startDate && dateRange.endDate) {
+      filtered = filtered.filter(trx => {
+        const trxDate = new Date(trx.tanggal);
+        return trxDate >= dateRange.startDate! && trxDate <= dateRange.endDate!;
+      });
+    }
+
+    setFilteredTransaksi(filtered);
+    setTotalData(filtered.length);
+    setTotalPages(Math.ceil(filtered.length / limit));
+    setPage(1);
+  };
+
+  // Handle edit
+  const handleEdit = (transaksi: Transaksi) => {
+    setSelectedTransaksi(transaksi);
+    setEditForm({
+      keterangan: transaksi.keterangan || "",
+      tipe_pembayaran: transaksi.tipe_pembayaran || "",
+      status_pembayaran: transaksi.status_pembayaran || "",
+      due: transaksi.due || "",
+    });
     setOpenEditForm(true);
   };
 
-  // Hitung harga total edit
-  const getEditHargaTotal = () => {
-    const sparepart = sparepartList.find(sp => sp.id_sparepart === editBarang);
-    if (!sparepart || editJumlah <= 0) return 0;
-    if (editTipe === "masuk") {
-      return editJumlah * (sparepart.harga_modal ?? 0);
-    } else {
-      return editJumlah * (sparepart.harga_jual ?? 0);
-    }
+  // Handle detail
+  const handleDetail = (transaksi: Transaksi) => {
+    setDetailTransaksi(transaksi);
+    setOpenDetailModal(true);
   };
 
-  // Handler update transaksi
-  const handleEditTransaksi = async () => {
-    setShowEditConfirm(false);
-    setOpenEditForm(false);
-    setLoading(true);
-    if (!editBarang || editJumlah <= 0 || !editTipe || !editTipePembayaran) {
-      toast.error("Barang, jumlah, tipe, dan tipe pembayaran wajib diisi");
-      setLoading(false);
-      return;
-    }
-    if (editTipePembayaran === "kredit" && !editDue) {
-      toast.error("Due wajib diisi jika pembayaran kredit");
-      setLoading(false);
-      return;
-    }
-    const harga_total = getEditHargaTotal();
+  // Handle update
+  const handleUpdate = async () => {
+    if (!selectedTransaksi) return;
+
     try {
-      await apiWithRefresh(
-        (tok) => updateTransaksi(tok, editId, {
-          id_sparepart: editBarang,
-          jumlah: editJumlah,
-          tipe: editTipe,
-          harga_total,
-          keterangan: editKeterangan,
-          tipe_pembayaran: editTipePembayaran,
-          status_pembayaran: editStatusPembayaran,
-          due: editTipePembayaran === "kredit" ? editDue : null,
-        }),
-        token,
-        setToken,
-        () => {},
-        router
-      );
+      setLoading(true);
+      
+      // Ambil token dari localStorage
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        router.push("/login");
+        return;
+      }
+      
+      const user = JSON.parse(userStr);
+      const token = user.access_token;
+      
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      
+      await updateTransaksi(token, selectedTransaksi.id_transaksi, editForm);
       toast.success("Transaksi berhasil diupdate");
-      setEditBarang("");
-      setEditJumlah(1);
-      setEditKeterangan("");
-      setEditTipe("masuk");
-      setEditId("");
-      setEditTipePembayaran("cash");
-      setEditStatusPembayaran("belum lunas");
-      setEditDue("");
-      await fetchData();
-    } catch {
+      setOpenEditForm(false);
+      loadData();
+    } catch (error) {
+      console.error("Gagal update transaksi:", error);
       toast.error("Gagal update transaksi");
-    }
-    setLoading(false);
-  };
-
-
-  // Modal tambah transaksi
-  // Hitung harga total otomatis sesuai logic backend
-  const getHargaTotal = () => {
-    const sparepart = sparepartList.find(sp => sp.id_sparepart === formBarang);
-    if (!sparepart || formJumlah <= 0) return 0;
-    if (formTipe === "masuk") {
-      // Barang masuk, harga total = harga_modal x jumlah
-      return formJumlah * (sparepart.harga_modal ?? 0);
-    } else {
-      // Barang keluar, harga total = harga jual x jumlah
-      return formJumlah * (sparepart.harga_jual ?? 0);
-    }
-  };
-
-  const handleTambahTransaksi = async () => {
-    setShowConfirm(false);
-    setOpenForm(false);
-    setLoading(true);
-    if (!formBarang || formJumlah <= 0 || !formTipe || !formTipePembayaran) {
-      toast.error("Barang, jumlah, tipe, dan tipe pembayaran wajib diisi");
+    } finally {
       setLoading(false);
-      return;
     }
-    if (formTipePembayaran === "kredit" && !formDue) {
-      toast.error("Due wajib diisi jika pembayaran kredit");
+  };
+
+  // Handle delete
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      
+      // Ambil token dari localStorage
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        router.push("/login");
+        return;
+      }
+      
+      const user = JSON.parse(userStr);
+      const token = user.access_token;
+      
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      
+      await deleteTransaksi(token, deleteId);
+      toast.success("Transaksi berhasil dihapus");
+      setShowDeleteConfirm(false);
+      loadData();
+    } catch (error) {
+      console.error("Gagal hapus transaksi:", error);
+      toast.error("Gagal hapus transaksi");
+    } finally {
       setLoading(false);
-      return;
-    }
-    const harga_total = getHargaTotal();
-    try {
-      const trx = await apiWithRefresh(
-        (tok) => addTransaksi(tok, {
-          id_sparepart: formBarang,
-          jumlah: formJumlah,
-          tipe: formTipe,
-          harga_total,
-          keterangan: formKeterangan,
-          tipe_pembayaran: formTipePembayaran,
-          status_pembayaran: "belum lunas",
-          due: formTipePembayaran === "kredit" ? formDue : null,
-        }),
-        token,
-        setToken,
-        () => {},
-        router
-      );
-      toast.success("Transaksi berhasil ditambah");
-      setFormBarang("");
-      setFormJumlah(1);
-      setFormKeterangan("");
-      setFormTipe("masuk");
-      setFormTipePembayaran("cash");
-      setFormDue("");
-      // Fetch latest transaksi and update table + show detail for the newest item
-      try {
-        const sendFilters = { ...filters };
-        if (sendFilters.tipe === "all") delete sendFilters.tipe;
-        if (filterDari) sendFilters.tanggal_mulai = filterDari;
-        if (filterSampai) {
-          const endDate = new Date(filterSampai);
-          endDate.setHours(23, 59, 59, 999);
-          const formattedEnd = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}T23:59:59`;
-          sendFilters.tanggal_selesai = formattedEnd;
-        }
-        if (filterKategori) sendFilters.kategori = filterKategori;
-        const res = await apiWithRefresh(
-          (tok) => getTransaksi(tok, { ...sendFilters, page: 1, limit }),
-          token,
-          setToken,
-          () => {},
-          router
-        );
-        if (res.data) {
-          setData(res.data);
-          setTotal(res.total ?? 0);
-          if (res.data.length > 0) {
-            setSelected(res.data[0]);
-            setOpenDetail(true);
-          }
-        }
-      } catch {}
-    } catch {
-      toast.error("Gagal tambah transaksi");
-    }
-    setLoading(false);
-  };
-
-  // Export handler (fix broken block)
-  const handleExport = async (type: "csv" | "excel") => {
-    try {
-      const fn = type === "csv" ? exportTransaksiCSV : exportTransaksiExcel;
-      const blob = await apiWithRefresh(
-        (tok) => fn(tok, filters),
-        token,
-        setToken,
-        () => {},
-        router
-      );
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `transaksi.${type === "csv" ? "csv" : "xlsx"}`;
-      a.click();
-    } catch {
-      toast.error("Gagal export");
     }
   };
 
-  // Integrasi dateRange ke filter
+  // Handle export
+  const handleExport = async (type: string) => {
+    try {
+      setLoading(true);
+      
+      // Ambil token dari localStorage
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        router.push("/login");
+        return;
+      }
+      
+      const user = JSON.parse(userStr);
+      const token = user.access_token;
+      
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      
+      if (type === "csv") {
+        await exportTransaksiCSV(token);
+        toast.success("Export CSV berhasil");
+      } else if (type === "excel") {
+        await exportTransaksiExcel(token);
+        toast.success("Export Excel berhasil");
+      }
+    } catch (error) {
+      console.error("Gagal export:", error);
+      toast.error("Gagal export data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle cetak struk
+  const handleCetakStruk = async (id: string) => {
+    try {
+      setLoading(true);
+      
+      // Ambil token dari localStorage
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        router.push("/login");
+        return;
+      }
+      
+      const user = JSON.parse(userStr);
+      const token = user.access_token;
+      
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      
+      await cetakStrukTransaksi(token, id);
+      toast.success("Struk berhasil dicetak");
+    } catch (error) {
+      console.error("Gagal cetak struk:", error);
+      toast.error("Gagal cetak struk");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilterTipe("all");
+    setFilterPembayaran("all");
+    setFilterStatus("all");
+    setSearch("");
+    setDateRange({ startDate: null, endDate: null });
+    setFilteredTransaksi(transaksiList);
+    setTotalData(transaksiList.length);
+    setTotalPages(Math.ceil(transaksiList.length / limit));
+    setPage(1);
+  };
+
+  // Pagination data
+  const currentData = filteredTransaksi.slice((page - 1) * limit, page * limit);
+
   useEffect(() => {
-    setFilterDari(dateRange.from);
-    setFilterSampai(dateRange.to);
-  }, [dateRange]);
+    const initializeData = async () => {
+      // Load sparepart data terlebih dahulu
+      await loadSparepartData();
+      // Kemudian load transaksi data
+      await loadData();
+    };
+    
+    initializeData();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [search, filterTipe, filterPembayaran, filterStatus, dateRange, transaksiList]);
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-2 space-y-4 bg-white relative">
-  {/* Global Loading Overlay di layout, hapus dari sini */}
-      {/* Header & Sticky Action Bar */}
-      <div className="sticky top-0 z-20 bg-white pb-2 mb-2 shadow-sm border-b border-gray-200">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <FileText size={24} className="text-blue-600" />
-            <h1 className="text-2xl font-bold bg-white px-2 py-2 rounded-xl">Manajemen Transaksi</h1>
-          </div>
-          <div className="flex gap-2 items-center">
-            <Button className="bg-blue-600 text-white px-4 py-2 rounded flex gap-2 items-center font-bold shadow" onClick={() => setOpenForm(true)}>
-              <PlusCircle size={18} /> Tambah Transaksi
-            </Button>
-            {/* Export Dropdown */}
-            <div className="relative">
-              <Button variant="outline" className="bg-white text-black font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100 flex gap-2 items-center" onClick={() => setShowExport(!showExport)}>
-                <FileText size={16} /> Export
-              </Button>
-              {showExport && (
-                <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-30">
-                  <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("csv"); }}>Export CSV</button>
-                  <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("excel"); }}>Export Excel</button>
-                </div>
-              )}
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <Card>
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-t-lg">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <FileText size={24} className="text-blue-600" />
+              <div>
+                <p className="text-blue-100 mt-2 text-lg">
+                  {new Date().toLocaleDateString('id-ID', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter - modern design dengan DatePicker */}
-<Card className="shadow-md border rounded-xl bg-white">
-  <CardHeader className="pb-2">
-    <CardTitle className="text-lg font-bold">Filter</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <form
-      className="flex flex-wrap gap-3 items-center md:flex-row md:gap-3 sm:flex-col sm:gap-2"
-      onSubmit={(e) => {
-        e.preventDefault()
-        fetchData()
-      }}
-    >
-      {/* Kategori */}
-      <Select
-        value={filterKategori || "all"}
-        onValueChange={(val) => setFilterKategori(val === "all" ? "" : val)}
-      >
-        <SelectTrigger className="w-[160px] bg-gray-50 border rounded-lg px-3 py-2">
-          <SelectValue placeholder="Kategori Barang" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua Kategori</SelectItem>
-          {kategoriList.map((kat) => (
-            <SelectItem key={kat.id_kategori_barang} value={kat.id_kategori_barang}>
-              {kat.nama_kategori}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Tipe */}
-      <Select
-        value={filters.tipe || ""}
-        onValueChange={(val) => setFilters({ ...filters, tipe: val })}
-      >
-        <SelectTrigger className="w-[120px] bg-gray-50 border rounded-lg px-3 py-2">
-          <SelectValue placeholder="Tipe" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua</SelectItem>
-          <SelectItem value="masuk">Masuk</SelectItem>
-          <SelectItem value="keluar">Keluar</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {/* Autocomplete Barang */}
-      <div className="relative w-[180px]">
-        <Input
-          type="text"
-          value={filterBarangQuery}
-          onChange={(e) => setFilterBarangQuery(e.target.value)}
-          placeholder="Cari barang..."
-          className="bg-gray-50 border rounded-lg px-3 py-2 pr-8"
-        />
-        <Search size={16} className="absolute right-2 top-2 text-gray-400" />
-        {filterBarangQuery && (
-          <div className="absolute z-10 bg-white border rounded shadow w-full max-h-40 overflow-auto mt-1">
-          {filteredBarangFilter.length === 0 ? (
-            <div className="px-3 py-2 text-gray-400">Barang tidak ditemukan</div>
-            ) : (
-            filteredBarangFilter.map((sp) => (
-            <div
-              key={sp.id_sparepart}
-              className="px-3 py-2 cursor-pointer hover:bg-blue-100"
-              onClick={() => {
-              setFilters({ ...filters, id_sparepart: sp.id_sparepart });
-              setFilterBarangQuery(sp.nama_barang);
-              }}
-            >
-          {sp.nama_barang}
-          </div>
-          ))
-        )}
-        </div>
-      )}
-      </div>
-
-      {/* Date Range pakai DatePicker */}
-      <div className="flex items-center gap-2 w-[280px]">
-        <DatePicker
-          value={dateRange.from ? new Date(dateRange.from) : null}
-          onChange={(val: Date | null) => {
-            if (val) {
-              const year = val.getFullYear();
-              const month = String(val.getMonth() + 1).padStart(2, '0');
-              const day = String(val.getDate()).padStart(2, '0');
-              setDateRange({ ...dateRange, from: `${year}-${month}-${day}` });
-            } else {
-              setDateRange({ ...dateRange, from: "" });
-            }
-          }}
-          placeholder="Dari"
-        />
-        <span className="text-gray-500">-</span>
-        <DatePicker
-          value={dateRange.to ? new Date(dateRange.to) : null}
-          onChange={(val: Date | null) => {
-            if (val) {
-              const year = val.getFullYear();
-              const month = String(val.getMonth() + 1).padStart(2, '0');
-              const day = String(val.getDate()).padStart(2, '0');
-              setDateRange({ ...dateRange, to: `${year}-${month}-${day}` });
-            } else {
-              setDateRange({ ...dateRange, to: "" });
-            }
-          }}
-          placeholder="Sampai"
-        />
-      </div>
-
-      {/* Tombol Apply & Reset */}
-      <div className="flex gap-2 ml-auto">
-        <Button
-          type="submit"
-          size="sm"
-          className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold"
-        >
-          Apply
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="px-4 py-2 rounded-lg"
-          onClick={() => {
-            setFilters({})
-            setFilterKategori("")
-            setFilterBarangQuery("")
-            setDateRange({ from: "", to: "" })
-            setPage(1)
-          }}
-        >
-          Reset
-        </Button>
-      </div>
-    </form>
-  </CardContent>
-</Card>
-
-      {/* Tabel */}
-      <Card className="bg-white rounded-xl shadow border mt-3">
-        <CardContent>
-    {loading ? (
-      <div className="w-full flex items-center justify-center py-8">
-        <span className="text-blue-600 text-base animate-pulse font-semibold">Loading...</span>
-      </div>
-    ) : data.length === 0 ? (
-      <div className="w-full flex items-center justify-center py-8">
-        <span className="text-gray-500 text-sm">Belum ada data transaksi.</span>
-      </div>
-    ) : (
-      <div className="overflow-x-auto">
-        <Table className="w-full text-sm border-collapse">
-          <TableHeader>
-              <TableRow className="bg-gray-100 border-b text-xs">
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-8">No</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Tanggal</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-20">Barang</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Kategori</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-10">Jml</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Total</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Tipe</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Pembayaran</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Status</TableHead>
-                <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Aksi</TableHead>
-              </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[...data].sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()).map((trx, idx) => (
-              <TableRow
-                key={trx.id_transaksi}
-                className="hover:bg-gray-50 transition-colors text-xs"
-              >
-                <TableCell className="px-1 py-1 text-center w-8">{(page - 1) * limit + idx + 1}</TableCell>
-                <TableCell className="px-1 py-1 text-center w-16">{(() => {const d = new Date(trx.tanggal);return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`})()}</TableCell>
-                <TableCell className="px-1 py-1 text-center w-20 truncate" title={trx.sparepart?.nama_barang}>{trx.sparepart?.nama_barang || "-"}</TableCell>
-                <TableCell className="px-1 py-1 text-center w-16 truncate" title={trx.sparepart?.kategori}>{trx.sparepart?.kategori || "-"}</TableCell>
-                <TableCell className="px-1 py-1 text-center w-10">{trx.jumlah}</TableCell>
-                <TableCell className="px-1 py-1 text-center w-16">Rp {trx.harga_total.toLocaleString()}</TableCell>
-                <TableCell className="px-1 py-1 text-center w-12">
-                  <span className={`px-1 py-0.5 rounded-full text-[10px] font-medium ${trx.tipe === "masuk" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{trx.tipe}</span>
-                </TableCell>
-                <TableCell className="px-1 py-1 text-center w-16">
-                  {trx.tipe_pembayaran
-                    ? trx.tipe_pembayaran.charAt(0).toUpperCase() + trx.tipe_pembayaran.slice(1)
-                    : <span className="text-yellow-400">-</span>
-                  }
-                </TableCell>
-                <TableCell className="px-1 py-1 text-center w-12">
-                  {trx.tipe_pembayaran === 'cash' ? (
-                    <span className="px-1 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">Lunas</span>
-                  ) : trx.tipe_pembayaran === 'kredit' ? (
-                    <span className={`px-1 py-0.5 rounded-full text-[10px] font-bold ${trx.status_pembayaran === 'lunas' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{trx.status_pembayaran ? trx.status_pembayaran.charAt(0).toUpperCase() + trx.status_pembayaran.slice(1) : '-'}</span>
-                  ) : (
-                    <span className="text-yellow-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="px-1 py-1 text-center w-16">
-                  <div className="flex items-center justify-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-blue-600 px-1 py-0 hover:bg-blue-50 text-[10px]"
-                      onClick={() => {
-                        setSelected(trx);
-                        setOpenDetail(true);
-                      }}
-                    >
-                      Detail
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-gray-600 px-1 py-0 hover:bg-gray-50 text-[10px]"
-                      onClick={() => openEditModal(trx)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="px-1 py-0 hover:bg-red-600 text-[10px]"
-                      onClick={() => {
-                        setDeleteId(trx.id_transaksi);
-                        setShowDeleteConfirm(true);
-                      }}
-                    >
-                      Hapus
-                    </Button>
+            <div className="flex gap-2 items-center">
+              {/* Export Dropdown */}
+              <div className="relative">
+                <Button variant="outline" className="bg-white text-black font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100 flex gap-2 items-center" onClick={() => setShowExport(!showExport)}>
+                  <FileText size={16} /> Export
+                </Button>
+                {showExport && (
+                  <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-30">
+                    <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("csv"); }}>Export CSV</button>
+                    <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("excel"); }}>Export Excel</button>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    )}
-
-    {/* Pagination */}
-    <div className="flex justify-between items-center mt-4 px-2">
-      <Button
-        disabled={page === 1}
-        variant="outline"
-        size="sm"
-        onClick={() => setPage(page - 1)}
-      >
-        Prev
-      </Button>
-      <span className="text-sm font-medium text-gray-700">
-        Page {page}
-      </span>
-      <Button
-        disabled={page * limit >= total}
-        variant="outline"
-        size="sm"
-        onClick={() => setPage(page + 1)}
-      >
-        Next
-      </Button>
-    </div>
-        </CardContent>
-      </Card>
-      {/* Modal Tambah Transaksi */}
-      <Dialog open={openForm} onOpenChange={setOpenForm}>
-        <DialogContent className="sm:max-w-lg rounded-2xl shadow-xl">
-          <DialogHeader className="border-b pb-3">
-            <DialogTitle className="text-lg font-semibold text-gray-800">
-              Tambah Transaksi
-            </DialogTitle>
-            <p className="text-sm text-gray-500">
-              Lengkapi detail transaksi dengan benar sebelum menyimpan.
-            </p>
-          </DialogHeader>
-          <form
-            className="space-y-5 py-2"
-            onSubmit={e => {
-              e.preventDefault();
-              setShowConfirm(true);
-            }}
-          >
-            {/* Pilih Kategori dan Merek sebelum cari barang */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Kategori Barang</label>
-                <Select value={formKategori || "none"} onValueChange={val => setFormKategori(val === "none" ? "" : val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Pilih Kategori</SelectItem>
-                    {kategoriList.map((kat, idx) => (
-                      <SelectItem key={kat.id_kategori_barang ? String(kat.id_kategori_barang) : `kat-${idx}`} value={kat.id_kategori_barang}>{kat.nama_kategori}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Merek</label>
-                <Select value={formMerek || "none"} onValueChange={val => setFormMerek(val === "none" ? "" : val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Merek" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Pilih Merek</SelectItem>
-                    {/* Ambil merek dari sparepartList yang sesuai kategori, pastikan key unik dan tidak duplikat */}
-                    {(() => {
-                      // Filter sparepart sesuai kategori yang dipilih
-                      const filtered = sparepartList.filter(sp => sp.id_kategori_barang === formKategori);
-                      // Ambil semua merek unik
-                      const merekSet = new Set<string>();
-                      filtered.forEach(sp => {
-                        let merekStr = "";
-                        if (typeof sp.merek === "object" && sp.merek !== null) {
-                          merekStr = sp.merek.nama_merek ?? JSON.stringify(sp.merek);
-                        } else {
-                          merekStr = String(sp.merek);
-                        }
-                        if (merekStr) merekSet.add(merekStr);
-                      });
-                      return Array.from(merekSet).map((merek, idx) => (
-                        <SelectItem key={merek + '-' + idx} value={merek}>{merek}</SelectItem>
-                      ));
-                    })()}
-                  </SelectContent>
-                </Select>
+                )}
               </div>
             </div>
-            {/* Field cari barang muncul setelah kategori dan merek dipilih */}
-            {formKategori && formMerek && (
-              <div className="space-y-2 mt-4">
-                <label className="block text-sm font-medium text-gray-700">Barang</label>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-6">
+          {/* Filter Section */}
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-64">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
                 <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    type="text"
-                    placeholder="Cari nama barang..."
-                    value={
-                      formBarang
-                        ? sparepartList.find(sp => sp.id_sparepart === formBarang)?.nama_barang || formBarang
-                        : ""
-                    }
-                    onChange={e => {
-                      setFormBarang(e.target.value);
-                    }}
-                    autoComplete="off"
-                    className="pr-10"
+                    placeholder="Cari berdasarkan keterangan atau ID transaksi..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
                   />
-                  <div className="absolute inset-y-0 right-2 flex items-center text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none"
-                      viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
-                    </svg>
-                  </div>
-                  {formBarang !== undefined && (
-                    <div className="absolute z-20 mt-1 bg-white border rounded-lg shadow-lg w-full max-h-40 overflow-auto">
-                      {sparepartList
-                        .filter(sp => sp.id_kategori_barang === formKategori &&
-                          ((typeof sp.merek === 'object' && sp.merek !== null ? sp.merek.nama_merek : String(sp.merek)) === formMerek) &&
-                          sp.nama_barang.toLowerCase().includes((formBarang || "").toLowerCase())
-                        )
-                        .sort((a, b) => a.nama_barang.localeCompare(b.nama_barang))
-                        .map(sp => (
-                          <div
-                            key={sp.id_sparepart}
-                            className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
-                            onClick={() => setFormBarang(sp.id_sparepart)}
-                          >
-                            {sp.nama_barang}
-                          </div>
-                        ))}
-                    </div>
-                  )}
                 </div>
               </div>
-            )}
-
-            {/* Info Transaksi */}
-            <div className="grid grid-cols-2 gap-4">
+              
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Jumlah</label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={formJumlah === 0 ? "" : formJumlah}
-                  onChange={e => {
-                    const raw = e.target.value ?? "";
-                    const val = typeof raw === "string" ? raw.replace(/^0+/, "") : "";
-                    setFormJumlah(val === "" ? 0 : Number(val));
-                  }}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Tipe</label>
-                <Select value={formTipe} onValueChange={setFormTipe}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Tipe" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
+                <Select value={filterTipe} onValueChange={setFilterTipe}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Semua" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
                     <SelectItem value="masuk">Masuk</SelectItem>
                     <SelectItem value="keluar">Keluar</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Tipe Pembayaran</label>
-                <Select value={formTipePembayaran} onValueChange={setFormTipePembayaran}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Tipe Pembayaran" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pembayaran</label>
+                <Select value={filterPembayaran} onValueChange={setFilterPembayaran}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Semua" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
                     <SelectItem value="cash">Cash</SelectItem>
                     <SelectItem value="kredit">Kredit</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
-                {formTipePembayaran === "kredit" && (
-                  <>
-                    <label className="block mb-1 text-sm font-medium text-gray-700">Due Date</label>
-                    <DatePicker
-                      value={formDue ? new Date(formDue) : null}
-                      onChange={val => setFormDue(val ? val.toISOString().split("T")[0] : "")}
-                      placeholder="Pilih Due Date"
-                    />
-                  </>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Semua" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="lunas">Lunas</SelectItem>
+                    <SelectItem value="belum lunas">Belum Lunas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button variant="outline" onClick={resetFilters}>
+                Reset Filter
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <BarChart3 size={20} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Transaksi Hari Ini</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {(() => {
+                        const today = new Date().toDateString();
+                        return filteredTransaksi.filter(t => 
+                          new Date(t.tanggal).toDateString() === today
+                        ).length;
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <FileText size={20} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Pemasukan Hari Ini</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      Rp {(() => {
+                        const today = new Date().toDateString();
+                        return filteredTransaksi
+                          .filter(t => t.tipe === "keluar" && new Date(t.tanggal).toDateString() === today)
+                          .reduce((sum, t) => sum + t.harga_total, 0)
+                          .toLocaleString();
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Calendar size={20} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Barang Masuk Hari Ini</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {(() => {
+                        const today = new Date().toDateString();
+                        return filteredTransaksi
+                          .filter(t => t.tipe === "masuk" && new Date(t.tanggal).toDateString() === today)
+                          .reduce((sum, t) => sum + t.jumlah, 0);
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Calendar size={20} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Barang Keluar Hari Ini</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {(() => {
+                        const today = new Date().toDateString();
+                        return filteredTransaksi
+                          .filter(t => t.tipe === "keluar" && new Date(t.tanggal).toDateString() === today)
+                          .reduce((sum, t) => sum + t.jumlah, 0);
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Table */}
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-8">No</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Tanggal</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-20">Barang</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-10">Jml</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Total</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Tipe</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Pembayaran</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Status</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-20">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                      Tidak ada data transaksi
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  currentData.map((trx, idx) => (
+                    <TableRow
+                      key={trx.id_transaksi}
+                      className="hover:bg-gray-50 transition-colors text-xs"
+                    >
+                      <TableCell className="px-1 py-1 text-center w-8">{(page - 1) * limit + idx + 1}</TableCell>
+                      <TableCell className="px-1 py-1 text-center w-16">{(() => {const d = new Date(trx.tanggal);return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`})()}</TableCell>
+                      <TableCell className="px-1 py-1 text-left w-20">
+                        {/* Tampilkan detail barang - support format baru dan lama */}
+                        {trx.detail_barang && trx.detail_barang.length > 0 ? (
+                          // Format baru: ada array detail_barang
+                          <div className="space-y-1">
+                            {trx.detail_barang.map((item: any, index: number) => {
+                              // Cari nama barang dari sparepartList berdasarkan id_sparepart
+                              const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === item.id_sparepart);
+                              const namaBarang = item.nama_barang || sparepartInfo?.nama_barang || `Item ${index + 1}`;
+                              
+                              return (
+                                <div key={index} className="text-xs">
+                                  <div className="font-medium">{namaBarang}</div>
+                                  <div className="text-gray-500">
+                                    {item.jumlah}x @ Rp {item.harga_satuan?.toLocaleString() || '0'}
+                                    {item.eceran && <span className="text-orange-600 ml-1">(Eceran)</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : trx.id_sparepart ? (
+                          // Format lama: hanya ada id_sparepart
+                          (() => {
+                            console.log("=== DEBUG OLD FORMAT ===");
+                            console.log("Transaksi ID:", trx.id_transaksi);
+                            console.log("ID Sparepart:", trx.id_sparepart);
+                            console.log("Sparepart List Length:", sparepartList.length);
+                            
+                            if (sparepartList.length > 0) {
+                              console.log("Sample spareparts:", sparepartList.slice(0, 3).map(sp => ({
+                                id: sp.id_sparepart,
+                                nama: sp.nama_barang
+                              })));
+                            }
+                            
+                            const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === trx.id_sparepart);
+                            console.log("Found sparepart:", sparepartInfo);
+                            console.log("========================");
+                            
+                            return (
+                              <div className="text-xs">
+                                <div className="font-medium">
+                                  {sparepartInfo?.nama_barang || 'Barang Tidak Ditemukan'}
+                                </div>
+                                <div className="text-gray-500">
+                                  {trx.jumlah}x @ Rp {(trx.harga_total / trx.jumlah).toLocaleString()}
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          // Tidak ada data barang sama sekali
+                          <div className="text-xs">
+                            <div className="font-medium text-gray-400">Data Barang Tidak Tersedia</div>
+                            <div className="text-gray-500">
+                              {trx.keterangan || 'Transaksi tanpa detail barang'}
+                            </div>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-1 py-1 text-center w-10">{trx.jumlah}</TableCell>
+                      <TableCell className="px-1 py-1 text-center w-16">
+                        {trx.tipe === "masuk" ? "Rp 0" : `Rp ${trx.harga_total.toLocaleString()}`}
+                      </TableCell>
+                      <TableCell className="px-1 py-1 text-center w-12">
+                        <span className={`px-1 py-0.5 rounded-full text-[10px] font-medium ${trx.tipe === "masuk" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{trx.tipe}</span>
+                      </TableCell>
+                      <TableCell className="px-1 py-1 text-center w-16">
+                        {trx.tipe_pembayaran
+                          ? trx.tipe_pembayaran.charAt(0).toUpperCase() + trx.tipe_pembayaran.slice(1)
+                          : <span className="text-yellow-400">-</span>
+                        }
+                      </TableCell>
+                      <TableCell className="px-1 py-1 text-center w-12">
+                        {trx.tipe_pembayaran === 'cash' ? (
+                          <span className="px-1 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">Lunas</span>
+                        ) : trx.tipe_pembayaran === 'kredit' ? (
+                          <span className={`px-1 py-0.5 rounded-full text-[10px] font-bold ${trx.status_pembayaran === 'lunas' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{trx.status_pembayaran ? trx.status_pembayaran.charAt(0).toUpperCase() + trx.status_pembayaran.slice(1) : '-'}</span>
+                        ) : (
+                          <span className="text-yellow-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-1 py-1 text-center w-20">
+                        <div className="flex gap-1 justify-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[10px] px-1 py-0.5 h-6"
+                            onClick={() => handleDetail(trx)}
+                          >
+                            Detail
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[10px] px-1 py-0.5 h-6"
+                            onClick={() => handleEdit(trx)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="text-[10px] px-1 py-0.5 h-6"
+                            onClick={() => {
+                              setDeleteId(trx.id_transaksi);
+                              setShowDeleteConfirm(true);
+                            }}
+                          >
+                            Hapus
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {totalData > 0 && (
+            <div className="flex justify-between items-center mt-4">
+              <p className="text-sm text-gray-600">
+                Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, totalData)} dari {totalData} data
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Sebelumnya
+                </Button>
+                <span className="px-3 py-2 text-sm">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Selanjutnya
+                </Button>
               </div>
             </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
-              <Input
-                value={formKeterangan}
-                onChange={e => setFormKeterangan(e.target.value)}
-                placeholder="Keterangan (opsional)"
-              />
-            </div>
-
-            {/* Total Harga */}
-            <div className="bg-gray-50 p-3 rounded-lg border">
-              <label className="block mb-1 text-sm font-medium text-gray-700">Total Harga</label>
-              <div className="text-lg font-semibold text-gray-800">
-                Rp {(() => {
-                  const sparepart = sparepartList.find(sp => sp.id_sparepart === formBarang);
-                  if (!sparepart || formJumlah <= 0) return "0";
-                  if (formTipe === "masuk") {
-                    return (formJumlah * (sparepart.harga_modal ?? 0)).toLocaleString();
-                  } else {
-                    return (formJumlah * (sparepart.harga_jual ?? 0)).toLocaleString();
-                  }
-                })()}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-2 pt-3 border-t">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setOpenForm(false)}
-                className="px-4"
-              >
-                Batal
-              </Button>
-              <Button type="submit" className="px-5">
-                Simpan
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Modal Edit Transaksi */}
       <Dialog open={openEditForm} onOpenChange={setOpenEditForm}>
@@ -888,92 +800,51 @@ export default function TransaksiPage() {
             <DialogTitle className="text-lg font-semibold text-gray-800">
               Edit Transaksi
             </DialogTitle>
-            <p className="text-sm text-gray-500">
-              Ubah detail transaksi dengan benar sebelum menyimpan.
-            </p>
           </DialogHeader>
-          <form
-            className="space-y-5 py-2"
-            onSubmit={e => {
-              e.preventDefault();
-              setShowEditConfirm(true);
-            }}
-          >
-            {/* Detail Barang */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Barang</label>
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Cari nama barang..."
-                  value={
-                    editBarang
-                      ? sparepartList.find(sp => sp.id_sparepart === editBarang)?.nama_barang || editBarang
-                      : ""
-                  }
-                  onChange={e => {
-                    setEditBarang(e.target.value);
-                  }}
-                  autoComplete="off"
-                  className="pr-10"
-                />
-                <div className="absolute inset-y-0 right-2 flex items-center text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
-                  </svg>
-                </div>
-                {editBarang && editBarang.length > 0 && (
-                  <div className="absolute z-20 mt-1 bg-white border rounded-lg shadow-lg w-full max-h-40 overflow-auto">
-                    {sparepartList
-                      .filter(sp => sp.nama_barang.toLowerCase().includes(editBarang.toLowerCase()))
-                      .map(sp => (
-                        <div
-                          key={sp.id_sparepart}
-                          className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
-                          onClick={() => setEditBarang(sp.id_sparepart)}
-                        >
-                          {sp.nama_barang}
-                        </div>
-                      ))}
+          {selectedTransaksi && (
+            <div className="space-y-4 py-4">
+              {/* Info Read-only */}
+              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-700">ID:</span>
+                    <span className="ml-2 text-gray-600">{selectedTransaksi.id_transaksi.slice(0, 8)}...</span>
                   </div>
-                )}
+                  <div>
+                    <span className="font-medium text-gray-700">Tanggal:</span>
+                    <span className="ml-2 text-gray-600">
+                      {new Date(selectedTransaksi.tanggal).toLocaleDateString('id-ID')}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Total:</span>
+                    <span className="ml-2 text-gray-600 font-semibold">
+                      {selectedTransaksi.tipe === "masuk" ? "Rp 0" : `Rp ${selectedTransaksi.harga_total.toLocaleString()}`}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Tipe:</span>
+                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                      selectedTransaksi.tipe === "masuk" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}>
+                      {selectedTransaksi.tipe?.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Info Transaksi */}
-            <div className="grid grid-cols-2 gap-4">
+              {/* Form Edit */}
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Jumlah</label>
+                <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
                 <Input
-                  type="number"
-                  min={1}
-                  value={editJumlah === 0 ? "" : editJumlah}
-                  onChange={e => {
-                    const raw = e.target.value ?? "";
-                    const val = typeof raw === "string" ? raw.replace(/^0+/, "") : "";
-                    setEditJumlah(val === "" ? 0 : Number(val));
-                  }}
-                  required
+                  value={editForm.keterangan}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, keterangan: e.target.value }))}
+                  placeholder="Keterangan transaksi"
                 />
               </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Tipe</label>
-                <Select value={editTipe} onValueChange={setEditTipe}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Tipe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="masuk">Masuk</SelectItem>
-                    <SelectItem value="keluar">Keluar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1 text-sm font-medium text-gray-700">Tipe Pembayaran</label>
-                <Select value={editTipePembayaran} onValueChange={setEditTipePembayaran}>
+                <Select value={editForm.tipe_pembayaran} onValueChange={(val) => setEditForm(prev => ({ ...prev, tipe_pembayaran: val }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Tipe Pembayaran" />
                   </SelectTrigger>
@@ -983,260 +854,215 @@ export default function TransaksiPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">Status Pembayaran</label>
-                <Select value={editStatusPembayaran} onValueChange={setEditStatusPembayaran} disabled={editTipePembayaran === "cash"}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Status Pembayaran" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="belum lunas">Belum Lunas</SelectItem>
-                    <SelectItem value="lunas">Lunas</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                {editTipePembayaran === "kredit" && (
-                  <>
-                    <label className="block mb-1 text-sm font-medium text-gray-700">Due Date</label>
-                    <DatePicker
-                      value={editDue ? new Date(editDue) : null}
-                      onChange={val => setEditDue(val ? val.toISOString().split("T")[0] : "")}
-                      placeholder="Pilih Due Date"
+              {editForm.tipe_pembayaran === 'kredit' && (
+                <>
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Status Pembayaran</label>
+                    <Select value={editForm.status_pembayaran} onValueChange={(val) => setEditForm(prev => ({ ...prev, status_pembayaran: val }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lunas">Lunas</SelectItem>
+                        <SelectItem value="belum lunas">Belum Lunas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Tanggal Jatuh Tempo</label>
+                    <Input
+                      type="date"
+                      value={editForm.due}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, due: e.target.value }))}
                     />
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
-              <Input
-                value={editKeterangan}
-                onChange={e => setEditKeterangan(e.target.value)}
-                placeholder="Keterangan (opsional)"
-              />
-            </div>
-
-            {/* Total Harga */}
-            <div className="bg-gray-50 p-3 rounded-lg border">
-              <label className="block mb-1 text-sm font-medium text-gray-700">Total Harga</label>
-              <div className="text-lg font-semibold text-gray-800">
-                Rp {(() => {
-                  const sparepart = sparepartList.find(sp => sp.id_sparepart === editBarang);
-                  if (!sparepart || editJumlah <= 0) return "0";
-                  if (editTipe === "masuk") {
-                    return (editJumlah * (sparepart.harga_modal ?? 0)).toLocaleString();
-                  } else {
-                    return (editJumlah * (sparepart.harga_jual ?? 0)).toLocaleString();
-                  }
-                })()}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-2 pt-3 border-t">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setOpenEditForm(false)}
-                className="px-4"
-              >
-                Batal
-              </Button>
-              <Button type="submit" className="px-5">
-                Simpan
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Konfirmasi Edit Transaksi */}
-      <Dialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Konfirmasi Edit Transaksi</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <p>Barang: <b>{sparepartList.find(sp => sp.id_sparepart === editBarang)?.nama_barang || ""}</b></p>
-            <p>Jumlah: <b>{editJumlah}</b></p>
-            <p>Tipe: <b>{editTipe}</b></p>
-            <p>Total Harga: <b>Rp {getEditHargaTotal().toLocaleString()}</b></p>
-          </div>
-          <div className="flex gap-2 justify-end mt-4">
-            <Button variant="ghost" onClick={() => setShowEditConfirm(false)}>Batal</Button>
-            <Button onClick={() => {
-              handleEditTransaksi();
-              toast.success("Transaksi berhasil diupdate");
-            }}>Konfirmasi</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Konfirmasi Hapus Transaksi */}
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Konfirmasi Hapus Transaksi</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <p>Apakah Anda yakin ingin menghapus transaksi ini?</p>
-          </div>
-          <div className="flex gap-2 justify-end mt-4">
-            <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>Batal</Button>
-            <Button variant="destructive" onClick={() => {
-              handleDelete(deleteId);
-              toast.success("Transaksi berhasil dihapus");
-            }}>Hapus</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Konfirmasi Transaksi */}
-      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Konfirmasi Transaksi</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <p>Barang: <b>{sparepartList.find(sp => sp.id_sparepart === formBarang)?.nama_barang || ""}</b></p>
-            <p>Jumlah: <b>{formJumlah}</b></p>
-            <p>Tipe: <b>{formTipe}</b></p>
-            <p>Total Harga: <b>Rp {getHargaTotal().toLocaleString()}</b></p>
-          </div>
-          <div className="flex gap-2 justify-end mt-4">
-            <Button variant="ghost" onClick={() => setShowConfirm(false)}>Batal</Button>
-            <Button onClick={handleTambahTransaksi}>Konfirmasi</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Detail Transaksi - Preview Struk */}
-      <Dialog open={openDetail} onOpenChange={setOpenDetail}>
-        <DialogContent className="sm:max-w-md rounded-2xl shadow-xl">
-          <DialogHeader className="border-b pb-3 flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Printer size={22} className="text-blue-600" /> Preview Struk Transaksi
-            </DialogTitle>
-          </DialogHeader>
-          {selected && (
-            <div className="bg-white p-6 rounded-lg shadow-inner border flex flex-col gap-2 text-sm font-mono">
-              <div className="text-center text-xl font-bold mb-2 tracking-widest">ChiCha Mobile</div>
-              <div className="text-center text-sm tracking-widest"> Jl. Abdul Muis Pasar Baru Kota Padang Panjang</div>
-              <div className="flex justify-between"><span>Tanggal:</span> <span>{new Date(selected.tanggal).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span>Barang:</span> <span>{selected.sparepart?.nama_barang || '-'}</span></div>
-              <div className="flex justify-between"><span>Kategori:</span> <span>{selected.sparepart?.kategori || '-'}</span></div>
-              <div className="flex justify-between"><span>Jumlah:</span> <span>{selected.jumlah}</span></div>
-              <div className="flex justify-between"><span>Harga Satuan:</span> <span>Rp {selected.harga_total && selected.jumlah ? (selected.harga_total/selected.jumlah).toLocaleString() : '-'}</span></div>
-              <div className="flex justify-between font-bold border-t pt-2"><span>Total:</span> <span>Rp {selected.harga_total.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span>Tipe:</span> <span>{selected.tipe}</span></div>
-              <div className="flex justify-between"><span>Pembayaran:</span> <span>{selected.tipe_pembayaran}</span></div>
-              <div className="flex justify-between"><span>Status:</span> <span>{selected.status_pembayaran}</span></div>
-              {selected.tipe_pembayaran === 'kredit' && (
-                <div className="flex justify-between"><span>Due Date:</span> <span>{selected.due}</span></div>
+                  </div>
+                </>
               )}
-              <div className="flex justify-between"><span>Keterangan:</span> <span>{selected.keterangan || '-'}</span></div>
-              <div className="text-center text-xs text-gray-500 mt-4">Terima kasih telah bertransaksi!</div>
-                <div className="flex gap-2 justify-end pt-4 border-t mt-4">
-                  <button
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition text-sm"
-                    onClick={async () => {
-                      try {
-                        setLoading(true);
-                        // Ambil HTML dari endpoint dengan token
-                        const htmlContent = await apiWithRefresh(
-                          (tok) => getStrukHTML(tok, selected.id_transaksi),
-                          token,
-                          setToken,
-                          () => {},
-                          router
-                        );
-                        
-                        // Buka window baru dengan HTML dan auto-print
-                        const printWindow = window.open('', '_blank', 'width=800,height=600');
-                        if (printWindow) {
-                          printWindow.document.write(htmlContent);
-                          printWindow.document.close();
-                          printWindow.focus();
-                          // Auto print setelah load
-                          printWindow.onload = () => {
-                            printWindow.print();
-                          };
-                        } else {
-                          toast.error('Gagal membuka jendela print');
-                        }
-                        setLoading(false);
-                      } catch {
-                        setLoading(false);
-                        toast.error('Gagal mencetak struk');
-                      }
-                    }}
-                    type="button"
-                  >
-                    <Printer size={16} /> Print HTML
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700 transition text-sm"
-                    onClick={async () => {
-                      try {
-                        setLoading(true);
-                        // Download PDF dengan token
-                        const blob = await apiWithRefresh(
-                          (tok) => cetakStrukTransaksi(tok, selected.id_transaksi),
-                          token,
-                          setToken,
-                          () => {},
-                          router
-                        );
-                        const url = window.URL.createObjectURL(new Blob([blob]));
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `struk-transaksi-${selected.id_transaksi}.pdf`;
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        setLoading(false);
-                        toast.success('Struk PDF berhasil diunduh');
-                      } catch {
-                        setLoading(false);
-                        toast.error('Gagal mengunduh PDF');
-                      }
-                    }}
-                    type="button"
-                  >
-                    <Printer size={16} /> Download PDF
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg border text-gray-700 font-semibold hover:bg-gray-100 transition text-sm"
-                    onClick={() => setOpenDetail(false)}
-                    type="button"
-                  >
-                    <X size={16} /> Tutup
-                  </button>
-                </div>
-                {/* Tambahkan id pada konten struk untuk print/pdf */}
-                <div id="struk-preview-content" style={{display: 'none'}}>
-                  <div className="text-center text-xl font-bold mb-2 tracking-widest">POS SUPABASE</div>
-                  <div className="flex justify-between"><span>ID Transaksi:</span> <span>{selected.id_transaksi}</span></div>
-                  <div className="flex justify-between"><span>Tanggal:</span> <span>{new Date(selected.tanggal).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Barang:</span> <span>{selected.sparepart?.nama_barang || '-'}</span></div>
-                  <div className="flex justify-between"><span>Kategori:</span> <span>{selected.sparepart?.kategori || '-'}</span></div>
-                  <div className="flex justify-between"><span>Jumlah:</span> <span>{selected.jumlah}</span></div>
-                  <div className="flex justify-between"><span>Harga Satuan:</span> <span>Rp {selected.harga_total && selected.jumlah ? (selected.harga_total/selected.jumlah).toLocaleString() : '-'}</span></div>
-                  <div className="flex justify-between font-bold border-t pt-2"><span>Total:</span> <span>Rp {selected.harga_total.toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Tipe:</span> <span>{selected.tipe}</span></div>
-                  <div className="flex justify-between"><span>Pembayaran:</span> <span>{selected.tipe_pembayaran}</span></div>
-                  <div className="flex justify-between"><span>Status:</span> <span>{selected.status_pembayaran}</span></div>
-                  {selected.tipe_pembayaran === 'kredit' && (
-                    <div className="flex justify-between"><span>Due Date:</span> <span>{selected.due}</span></div>
-                  )}
-                  <div className="flex justify-between"><span>Keterangan:</span> <span>{selected.keterangan || '-'}</span></div>
-                  <div className="text-center text-xs text-gray-500 mt-4">Terima kasih telah bertransaksi!</div>
-                </div>
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setOpenEditForm(false)}>
+                  Batal
+                </Button>
+                <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleUpdate}>
+                  Simpan
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
+      {/* Modal Detail Transaksi */}
+      <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
+        <DialogContent className="sm:max-w-2xl rounded-2xl shadow-xl">
+          <DialogHeader className="border-b pb-3">
+            <DialogTitle className="text-lg font-semibold text-gray-800">
+              Detail Transaksi
+            </DialogTitle>
+          </DialogHeader>
+          {detailTransaksi && (
+            <div className="space-y-4 py-4">
+              {/* Info Transaksi */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">ID Transaksi</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded">{detailTransaksi.id_transaksi}</p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Tanggal</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded">
+                    {new Date(detailTransaksi.tanggal).toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Tipe</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      detailTransaksi.tipe === "masuk" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}>
+                      {detailTransaksi.tipe?.toUpperCase()}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Total Harga</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded font-semibold">
+                    {detailTransaksi.tipe === "masuk" ? "Rp 0 (Retur/Pengembalian)" : `Rp ${detailTransaksi.harga_total.toLocaleString()}`}
+                  </p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Tipe Pembayaran</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded">
+                    {detailTransaksi.tipe_pembayaran ? 
+                      detailTransaksi.tipe_pembayaran.charAt(0).toUpperCase() + detailTransaksi.tipe_pembayaran.slice(1) 
+                      : '-'
+                    }
+                  </p>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Status Pembayaran</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded">
+                    {detailTransaksi.tipe_pembayaran === 'cash' ? (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Lunas</span>
+                    ) : detailTransaksi.status_pembayaran ? (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        detailTransaksi.status_pembayaran === 'lunas' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {detailTransaksi.status_pembayaran.charAt(0).toUpperCase() + detailTransaksi.status_pembayaran.slice(1)}
+                      </span>
+                    ) : '-'}
+                  </p>
+                </div>
+              </div>
 
-      {/* Modal Faktur Preview & Cetak - Desain mirip gambar */}
-  {/* Faktur/print modal removed */}
+              {/* Due Date untuk Kredit */}
+              {detailTransaksi.tipe_pembayaran === 'kredit' && detailTransaksi.due && (
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Tanggal Jatuh Tempo</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded">
+                    {new Date(detailTransaksi.due).toLocaleDateString('id-ID')}
+                  </p>
+                </div>
+              )}
+
+              {/* Keterangan */}
+              {detailTransaksi.keterangan && (
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
+                  <p className="text-sm bg-gray-50 p-2 rounded">{detailTransaksi.keterangan}</p>
+                </div>
+              )}
+
+              {/* Detail Barang */}
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Detail Barang</label>
+                <div className="border rounded-lg overflow-hidden">
+                  {detailTransaksi.detail_barang && detailTransaksi.detail_barang.length > 0 ? (
+                    <div className="space-y-2 p-3">
+                      {detailTransaksi.detail_barang.map((item: any, index: number) => {
+                        const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === item.id_sparepart);
+                        const namaBarang = item.nama_barang || sparepartInfo?.nama_barang || `Item ${index + 1}`;
+                        
+                        return (
+                          <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                            <div>
+                              <p className="font-medium text-sm">{namaBarang}</p>
+                              <p className="text-xs text-gray-500">
+                                {item.jumlah}x @ Rp {item.harga_satuan?.toLocaleString() || '0'}
+                                {item.eceran && <span className="text-orange-600 ml-1">(Eceran)</span>}
+                              </p>
+                            </div>
+                            <p className="font-semibold text-sm">
+                              Rp {item.harga_total?.toLocaleString() || '0'}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : detailTransaksi.id_sparepart ? (
+                    <div className="p-3">
+                      {(() => {
+                        const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === detailTransaksi.id_sparepart);
+                        return (
+                          <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                            <div>
+                              <p className="font-medium text-sm">
+                                {sparepartInfo?.nama_barang || 'Barang Tidak Ditemukan'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {detailTransaksi.jumlah}x @ {detailTransaksi.tipe === "masuk" ? "Rp 0" : `Rp ${(detailTransaksi.harga_total / detailTransaksi.jumlah).toLocaleString()}`}
+                              </p>
+                            </div>
+                            <p className="font-semibold text-sm">
+                              {detailTransaksi.tipe === "masuk" ? "Rp 0" : `Rp ${detailTransaksi.harga_total.toLocaleString()}`}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="p-3 text-center text-gray-500">
+                      <p>Data barang tidak tersedia</p>
+                      <p className="text-xs mt-1">{detailTransaksi.keterangan || 'Transaksi tanpa detail barang'}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tombol Close */}
+              <div className="flex justify-end pt-4">
+                <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Konfirmasi Hapus */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <p className="text-gray-600">Apakah Anda yakin ingin menghapus transaksi ini?</p>
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={handleDelete}>
+              Hapus
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
