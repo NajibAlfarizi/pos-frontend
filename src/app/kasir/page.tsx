@@ -263,12 +263,11 @@ export default function KasirPage() {
 
   // Ubah harga_total manual jika eceran
   const ubahHargaTotal = (id_sparepart: string, harga: number) => {
-    // Jika tipe transaksi retur, harga selalu 0
-    if (tipeTransaksi === 'masuk') {
-      return;
-    }
     setKeranjang((prev) => prev.map((item) =>
-      item.id_sparepart === id_sparepart ? { ...item, harga_total: harga } : item
+      item.id_sparepart === id_sparepart ? { 
+        ...item, 
+        harga_total: tipeTransaksi === 'masuk' ? 0 : harga 
+      } : item
     ));
   };
 
