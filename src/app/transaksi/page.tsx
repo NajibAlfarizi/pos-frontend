@@ -99,6 +99,9 @@ export default function TransaksiPage() {
   const [openDetailModal, setOpenDetailModal] = useState(false);
   const [detailTransaksi, setDetailTransaksi] = useState<Transaksi | null>(null);
 
+  // State untuk expand barang per row
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
   const router = useRouter();
 
   // Load data
@@ -256,6 +259,17 @@ export default function TransaksiPage() {
   const handleDetail = (transaksi: Transaksi) => {
     setDetailTransaksi(transaksi);
     setOpenDetailModal(true);
+  };
+
+  // Handle expand barang
+  const toggleExpandRow = (transaksiId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(transaksiId)) {
+      newExpanded.delete(transaksiId);
+    } else {
+      newExpanded.add(transaksiId);
+    }
+    setExpandedRows(newExpanded);
   };
 
   // Handle update
@@ -616,7 +630,7 @@ export default function TransaksiPage() {
                 <TableRow className="bg-gray-50">
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-8">No</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Tanggal</TableHead>
-                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-20">Barang</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-32">Barang</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-10">Jml</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Total</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Tipe</TableHead>
@@ -640,66 +654,87 @@ export default function TransaksiPage() {
                     >
                       <TableCell className="px-1 py-1 text-center w-8">{(page - 1) * limit + idx + 1}</TableCell>
                       <TableCell className="px-1 py-1 text-center w-16">{(() => {const d = new Date(trx.tanggal);return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`})()}</TableCell>
-                      <TableCell className="px-1 py-1 text-left w-20">
-                        {/* Tampilkan detail barang - support format baru dan lama */}
-                        {trx.detail_barang && trx.detail_barang.length > 0 ? (
-                          // Format baru: ada array detail_barang
-                          <div className="space-y-1">
-                            {trx.detail_barang.map((item: any, index: number) => {
-                              // Cari nama barang dari sparepartList berdasarkan id_sparepart
-                              const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === item.id_sparepart);
-                              const namaBarang = item.nama_barang || sparepartInfo?.nama_barang || `Item ${index + 1}`;
-                              
-                              return (
-                                <div key={index} className="text-xs">
-                                  <div className="font-medium">{namaBarang}</div>
+                      <TableCell className="px-1 py-1 text-left w-32">
+                        {/* Tampilkan detail barang dengan expand/collapse */}
+                        {(() => {
+                          const isExpanded = expandedRows.has(trx.id_transaksi);
+                          
+                          if (trx.detail_barang && trx.detail_barang.length > 0) {
+                            // Format baru: ada array detail_barang
+                            const firstItem = trx.detail_barang[0];
+                            const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === firstItem.id_sparepart);
+                            const namaBarang = firstItem.nama_barang || sparepartInfo?.nama_barang || `Item 1`;
+                            
+                            return (
+                              <div className="space-y-1">
+                                {/* Item pertama selalu ditampilkan */}
+                                <div className="text-xs">
+                                  <div className="font-medium truncate" title={namaBarang}>
+                                    {namaBarang.length > 20 ? namaBarang.substring(0, 20) + '...' : namaBarang}
+                                  </div>
                                   <div className="text-gray-500">
-                                    {item.jumlah}x @ Rp {item.harga_satuan?.toLocaleString() || '0'}
-                                    {item.eceran && <span className="text-orange-600 ml-1">(Eceran)</span>}
+                                    {firstItem.jumlah}x @ Rp {firstItem.harga_satuan?.toLocaleString() || '0'}
+                                    {firstItem.eceran && <span className="text-orange-600 ml-1">(E)</span>}
                                   </div>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : trx.id_sparepart ? (
-                          // Format lama: hanya ada id_sparepart
-                          (() => {
-                            console.log("=== DEBUG OLD FORMAT ===");
-                            console.log("Transaksi ID:", trx.id_transaksi);
-                            console.log("ID Sparepart:", trx.id_sparepart);
-                            console.log("Sparepart List Length:", sparepartList.length);
-                            
-                            if (sparepartList.length > 0) {
-                              console.log("Sample spareparts:", sparepartList.slice(0, 3).map(sp => ({
-                                id: sp.id_sparepart,
-                                nama: sp.nama_barang
-                              })));
-                            }
-                            
+                                
+                                {/* Items lainnya jika expanded */}
+                                {isExpanded && trx.detail_barang.slice(1).map((item: any, index: number) => {
+                                  const itemSparepartInfo = sparepartList.find(sp => sp.id_sparepart === item.id_sparepart);
+                                  const itemNamaBarang = item.nama_barang || itemSparepartInfo?.nama_barang || `Item ${index + 2}`;
+                                  
+                                  return (
+                                    <div key={index + 1} className="text-xs border-t pt-1">
+                                      <div className="font-medium truncate" title={itemNamaBarang}>
+                                        {itemNamaBarang.length > 20 ? itemNamaBarang.substring(0, 20) + '...' : itemNamaBarang}
+                                      </div>
+                                      <div className="text-gray-500">
+                                        {item.jumlah}x @ Rp {item.harga_satuan?.toLocaleString() || '0'}
+                                        {item.eceran && <span className="text-orange-600 ml-1">(E)</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                
+                                {/* Tombol expand jika ada lebih dari 1 item */}
+                                {trx.detail_barang.length > 1 && (
+                                  <button
+                                    onClick={() => toggleExpandRow(trx.id_transaksi)}
+                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1"
+                                  >
+                                    {isExpanded ? '▲ Tutup' : `▼ +${trx.detail_barang.length - 1} lainnya`}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          } else if (trx.id_sparepart) {
+                            // Format lama: hanya ada id_sparepart
                             const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === trx.id_sparepart);
-                            console.log("Found sparepart:", sparepartInfo);
-                            console.log("========================");
+                            const namaBarang = sparepartInfo?.nama_barang || 'Barang Tidak Ditemukan';
                             
                             return (
                               <div className="text-xs">
-                                <div className="font-medium">
-                                  {sparepartInfo?.nama_barang || 'Barang Tidak Ditemukan'}
+                                <div className="font-medium truncate" title={namaBarang}>
+                                  {namaBarang.length > 20 ? namaBarang.substring(0, 20) + '...' : namaBarang}
                                 </div>
                                 <div className="text-gray-500">
                                   {trx.jumlah}x @ Rp {(trx.harga_total / trx.jumlah).toLocaleString()}
                                 </div>
                               </div>
                             );
-                          })()
-                        ) : (
-                          // Tidak ada data barang sama sekali
-                          <div className="text-xs">
-                            <div className="font-medium text-gray-400">Data Barang Tidak Tersedia</div>
-                            <div className="text-gray-500">
-                              {trx.keterangan || 'Transaksi tanpa detail barang'}
-                            </div>
-                          </div>
-                        )}
+                          } else {
+                            // Tidak ada data barang sama sekali
+                            const keterangan = trx.keterangan || 'Transaksi tanpa detail barang';
+                            return (
+                              <div className="text-xs">
+                                <div className="font-medium text-gray-400 truncate" title={keterangan}>
+                                  {keterangan.length > 20 ? keterangan.substring(0, 20) + '...' : keterangan}
+                                </div>
+                                <div className="text-gray-500">Data tidak tersedia</div>
+                              </div>
+                            );
+                          }
+                        })()}
                       </TableCell>
                       <TableCell className="px-1 py-1 text-center w-10">{trx.jumlah}</TableCell>
                       <TableCell className="px-1 py-1 text-center w-16">

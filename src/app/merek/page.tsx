@@ -47,25 +47,53 @@ const MerekPage: React.FC = () => {
   }, [router]);
 
   // Wrapper API agar support pagination
-  const getAllMerekPaginated = async (token: string, page: number, pageSize: number) => {
-    const res = await getAllMerek(token);
+  const getAllMerekPaginated = useCallback(async (token: string, page: number, pageSize: number) => {
+    const res = await apiWithRefresh(
+      () => getAllMerek(token),
+      token,
+      (newToken) => {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          const updatedUser = { ...user, access_token: newToken };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setToken(newToken);
+        }
+      },
+      () => router.push("/login"),
+      router
+    );
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
       data: res.slice(start, end),
       meta: { total: res.length }
     };
-  };
+  }, [router]);
 
-  const searchMerekPaginated = async (token: string, search: string, page: number, pageSize: number) => {
-    const res = await searchMerek(token, search);
+  const searchMerekPaginated = useCallback(async (token: string, search: string, page: number, pageSize: number) => {
+    const res = await apiWithRefresh(
+      () => searchMerek(token, search),
+      token,
+      (newToken) => {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          const updatedUser = { ...user, access_token: newToken };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setToken(newToken);
+        }
+      },
+      () => router.push("/login"),
+      router
+    );
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
       data: res.slice(start, end),
       meta: { total: res.length }
     };
-  };
+  }, [router]);
 
   const fetchMerek = useCallback(async () => {
     if (!token) return;
@@ -94,7 +122,7 @@ const MerekPage: React.FC = () => {
       setMerekList([]);
       setTotalMerek(0);
     }
-  }, [token, search, page, pageSize, router]);
+  }, [token, search, page, pageSize, router, getAllMerekPaginated, searchMerekPaginated]);
 
   const fetchStatistik = useCallback(async () => {
     if (!token) return;
