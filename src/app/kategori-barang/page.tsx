@@ -54,25 +54,53 @@ const KategoriBarangPage: React.FC = () => {
   }, [router]);
 
   // Wrapper API agar support pagination
-  const getAllKategoriPaginated = async (token: string, page: number, pageSize: number) => {
-    const res = await getAllKategoriBarang(token);
+  const getAllKategoriPaginated = useCallback(async (token: string, page: number, pageSize: number) => {
+    const res = await apiWithRefresh(
+      () => getAllKategoriBarang(token),
+      token,
+      (newToken) => {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          const updatedUser = { ...user, access_token: newToken };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setToken(newToken);
+        }
+      },
+      () => router.push("/login"),
+      router
+    );
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
       data: res.slice(start, end),
       meta: { total: res.length }
     };
-  };
+  }, [router]);
 
-  const searchKategoriPaginated = async (token: string, search: string, page: number, pageSize: number) => {
-    const res = await searchKategori(token, search);
+  const searchKategoriPaginated = useCallback(async (token: string, search: string, page: number, pageSize: number) => {
+    const res = await apiWithRefresh(
+      () => searchKategori(token, search),
+      token,
+      (newToken) => {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          const updatedUser = { ...user, access_token: newToken };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setToken(newToken);
+        }
+      },
+      () => router.push("/login"),
+      router
+    );
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
       data: res.slice(start, end),
       meta: { total: res.length }
     };
-  };
+  }, [router]);
 
   const fetchKategori = useCallback(async () => {
     if (!token) return;
@@ -101,7 +129,7 @@ const KategoriBarangPage: React.FC = () => {
       setKategoriList([]);
       setTotalKategori(0);
     }
-  }, [token, search, page, pageSize, router]);
+  }, [token, search, page, pageSize, router, getAllKategoriPaginated, searchKategoriPaginated]);
 
   const fetchStatistik = useCallback(async () => {
     if (!token) return;

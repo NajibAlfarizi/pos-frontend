@@ -40,6 +40,7 @@ export default function KasirPage() {
   const [showModalTransaksi, setShowModalTransaksi] = useState(false);
   const [detailTransaksi, setDetailTransaksi] = useState<any>(null);
   const [loadingTransaksi, setLoadingTransaksi] = useState(false);
+  const [hargaEceranInput, setHargaEceranInput] = useState<{[key: string]: string}>({});
 
   // Ambil token dari localStorage
   useEffect(() => {
@@ -185,12 +186,23 @@ export default function KasirPage() {
 
   // Tambah produk ke keranjang
   const tambahKeKeranjang = (produk: any) => {
+    // Validasi stok
+    if (produk.sisa <= 0) {
+      alert(`Stok barang "${produk.nama_barang}" kosong! Tidak bisa menambahkan ke keranjang.`);
+      return;
+    }
+
     console.log("Data yang masuk ke tambahKeKeranjang:", produk);
     console.log("ID Sparepart yang akan disimpan:", produk.id_sparepart);
     
     setKeranjang((prev) => {
       const exist = prev.find((item) => item.id_sparepart === produk.id_sparepart);
       if (exist) {
+        // Validasi stok saat menambah qty
+        if (exist.qty >= produk.sisa) {
+          alert(`Stok tidak mencukupi! Stok tersedia: ${produk.sisa}`);
+          return prev;
+        }
         // Jika sudah ada, tambah qty
         return prev.map((item) =>
           item.id_sparepart === produk.id_sparepart
@@ -219,15 +231,21 @@ export default function KasirPage() {
 
   // Ubah qty
   const ubahQty = (id_sparepart: string, qty: number) => {
-    setKeranjang((prev) => prev.map((item) =>
-      item.id_sparepart === id_sparepart
-        ? { 
-            ...item, 
-            qty, 
-            harga_total: tipeTransaksi === 'masuk' ? 0 : (item.eceran ? item.harga_total : qty * item.harga_jual)
-          }
-        : item
-    ));
+    setKeranjang((prev) => prev.map((item) => {
+      if (item.id_sparepart === id_sparepart) {
+        // Validasi stok
+        if (qty > item.stok) {
+          alert(`Stok tidak mencukupi! Stok tersedia: ${item.stok}`);
+          return item;
+        }
+        return { 
+          ...item, 
+          qty, 
+          harga_total: tipeTransaksi === 'masuk' ? 0 : (item.eceran ? item.harga_total : qty * item.harga_jual)
+        };
+      }
+      return item;
+    }));
   };
 
   // Toggle eceran per item
@@ -252,6 +270,17 @@ export default function KasirPage() {
     setKeranjang((prev) => prev.map((item) =>
       item.id_sparepart === id_sparepart ? { ...item, harga_total: harga } : item
     ));
+  };
+
+  // Format input rupiah untuk eceran
+  const formatRupiahInput = (value: string | number): string => {
+    if (!value) return '';
+    const numericValue = String(value).replace(/[^\d]/g, '');
+    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const parseRupiahInput = (value: string): number => {
+    return parseInt(value.replace(/[^\d]/g, '')) || 0;
   };
 
   // Fungsi selesaikan transaksi
@@ -625,8 +654,19 @@ export default function KasirPage() {
                 return (
                   <div
                     key={produk.id_sparepart}
-                    className="border rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all hover:scale-105 bg-white"
+                    className={`border rounded-xl p-4 cursor-pointer transition-all bg-white ${
+                      produk.sisa > 0 
+                        ? 'hover:shadow-lg hover:scale-105' 
+                        : tipeTransaksi === 'masuk'
+                          ? 'hover:shadow-lg hover:scale-105 border-orange-300 bg-orange-50'  // Untuk transaksi masuk, stok 0 masih bisa diklik
+                          : 'opacity-60 border-red-300 bg-red-50 cursor-not-allowed'  // Untuk transaksi keluar, stok 0 tidak bisa diklik
+                    }`}
                     onClick={() => {
+                      // Cek stok hanya untuk transaksi keluar, jika 0 atau kurang maka tidak bisa ditambahkan
+                      if (tipeTransaksi === 'keluar' && produk.sisa <= 0) {
+                        return; // Tidak ada alert, langsung return
+                      }
+                      
                       console.log("Data produk dari server:", produk);
                       console.log("ID Sparepart:", produk.id_sparepart);
                       
@@ -658,7 +698,14 @@ export default function KasirPage() {
                     </div>
                     
                     <div className="text-xs text-gray-500 mb-1">
-                      Stok: <span className="font-semibold">{produk.sisa}</span>
+                      Stok: <span className={`font-semibold ${produk.sisa > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {produk.sisa}
+                        {produk.sisa <= 0 && (
+                          <span className={`ml-1 ${tipeTransaksi === 'masuk' ? 'text-orange-600' : 'text-red-600'}`}>
+                            ⚠️ {tipeTransaksi === 'masuk' ? 'SILAHKAN RESTOK' : 'HABIS'}
+                          </span>
+                        )}
+                      </span>
                     </div>
                     
                     <div className="text-xs text-gray-400 mb-2">
@@ -734,12 +781,26 @@ export default function KasirPage() {
                       />
                       {item.eceran && (
                         <input
-                          type="number"
-                          min={0}
-                          value={item.harga_total}
-                          onChange={e => ubahHargaTotal(item.id_sparepart, Number(e.target.value))}
+                          type="text"
+                          value={hargaEceranInput[item.id_sparepart] || formatRupiahInput(item.harga_total)}
+                          onChange={(e) => {
+                            const formatted = formatRupiahInput(e.target.value);
+                            setHargaEceranInput(prev => ({
+                              ...prev,
+                              [item.id_sparepart]: formatted
+                            }));
+                            const numericValue = parseRupiahInput(e.target.value);
+                            ubahHargaTotal(item.id_sparepart, numericValue);
+                          }}
+                          onBlur={() => {
+                            // Reset format saat blur
+                            setHargaEceranInput(prev => ({
+                              ...prev,
+                              [item.id_sparepart]: formatRupiahInput(item.harga_total)
+                            }));
+                          }}
                           className="w-24 border rounded px-1 py-0.5 text-xs"
-                          placeholder="Harga total"
+                          placeholder="0"
                         />
                       )}
                     </div>

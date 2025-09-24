@@ -393,6 +393,7 @@ const SparepartPage: React.FC = () => {
                 <div className="absolute left-0 top-full mt-1 bg-white border rounded-lg shadow-lg max-w-xs w-full sm:w-72 max-h-40 overflow-auto z-20">
                   {sparepartList
                     .filter(sp => sp.nama_barang.toLowerCase().includes(search.toLowerCase()))
+                    .sort((a, b) => a.nama_barang.toLowerCase().localeCompare(b.nama_barang.toLowerCase()))
                     .slice(0, 10)
                     .map(sp => (
                       <div
@@ -465,6 +466,9 @@ const SparepartPage: React.FC = () => {
                 // Search by nama_barang
                 const searchMatch = !search || sp.nama_barang.toLowerCase().includes(search.toLowerCase());
                 return kategoriMatch && merekMatch && searchMatch;
+              }).sort((a, b) => {
+                // Sort by nama_barang alphabetically (case insensitive)
+                return a.nama_barang.toLowerCase().localeCompare(b.nama_barang.toLowerCase());
               });
               if (filtered.length === 0) {
                 return (
