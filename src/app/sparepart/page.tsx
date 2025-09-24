@@ -458,7 +458,7 @@ const SparepartPage: React.FC = () => {
             {(() => {
               const filtered = (activeTab === 'all'
                 ? sparepartList
-                : sparepartList.filter(sp => sp.sisa <= 2)
+                : sparepartList.filter(sp => sp.sisa <= 1)
               ).filter(sp => {
                 // Filter by kategori & merek
                 const kategoriMatch = !filterKategori || sp.id_kategori_barang === filterKategori;
@@ -495,7 +495,7 @@ const SparepartPage: React.FC = () => {
                   <td className="px-3 py-2 text-sm text-center">{sparepart.jumlah}</td>
                   <td className="px-3 py-2 text-sm text-center">{sparepart.terjual}</td>
                   <td className="px-3 py-2 text-sm text-center">
-                    {sparepart.sisa <= 2 ? (
+                    {sparepart.sisa <= 1 ? (
                       <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">
                         {sparepart.sisa}
                       </span>
@@ -698,7 +698,7 @@ const SparepartPage: React.FC = () => {
                   <li>Terjual: <span className="font-bold">{detailSparepart.terjual}</span></li>
                   <li>
                     Sisa:{" "}
-                    <span className={`font-bold ${detailSparepart.sisa <= 5 ? "text-red-600" : "text-gray-800"}`}>
+                    <span className={`font-bold ${detailSparepart.sisa <= 1 ? "text-red-600" : "text-gray-800"}`}>
                       {detailSparepart.sisa}
                     </span>
                   </li>
@@ -739,7 +739,7 @@ const SparepartPage: React.FC = () => {
             </div>
 
             {/* Peringatan stok rendah */}
-            {detailSparepart.sisa < 2 && (
+            {detailSparepart.sisa <= 1 && (
               <div className="bg-red-100 text-red-700 rounded-lg p-3 font-medium mt-6 flex items-center gap-2">
                 ⚠️ Stok sparepart ini rendah!
               </div>
