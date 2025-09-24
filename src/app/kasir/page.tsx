@@ -8,6 +8,7 @@ import { getAllSparepart, searchSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
 import { getAllMerek } from "@/lib/api/merekHelper";
 import { addTransaksi, getStrukHTML, cetakStrukTransaksi } from "@/lib/api/transaksiHelper";
+import { withAuthRetry } from "@/lib/api/withAuthRetry";
 
 export default function KasirPage() {
   // State
@@ -33,7 +34,6 @@ export default function KasirPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(""); // debounced search
   const [tipeTransaksi, setTipeTransaksi] = useState("keluar"); // keluar = penjualan, masuk = retur
   const [keranjang, setKeranjang] = useState<KeranjangItem[]>([]);
-  const [token, setToken] = useState("");
   const [tipePembayaran, setTipePembayaran] = useState("cash"); // cash atau kredit
   const [keteranganTransaksi, setKeteranganTransaksi] = useState(""); // keterangan transaksi
   const [dueDate, setDueDate] = useState(""); // tanggal jatuh tempo untuk kredit
@@ -41,26 +41,6 @@ export default function KasirPage() {
   const [detailTransaksi, setDetailTransaksi] = useState<any>(null);
   const [loadingTransaksi, setLoadingTransaksi] = useState(false);
   const [hargaEceranInput, setHargaEceranInput] = useState<{[key: string]: string}>({});
-
-  // Ambil token dari localStorage
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const userStr = localStorage.getItem("user");
-      console.log('User dari localStorage:', userStr);
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          console.log('User parsed:', user);
-          // Gunakan access_token atau token yang benar
-          const userToken = user?.access_token || user?.token || "";
-          console.log('Token yang akan digunakan:', userToken);
-          setToken(userToken);
-        } catch (e) {
-          console.error('Error parsing user:', e);
-        }
-      }
-    }
-  }, []);
 
   // Debouncing untuk search query
   useEffect(() => {
@@ -73,25 +53,23 @@ export default function KasirPage() {
 
   // Fetch kategori & merek
   useEffect(() => {
-    console.log('Token untuk fetch:', token);
-    if (!token) {
-      console.log('Token kosong, tidak fetch data');
-      return;
-    }
+    if (typeof window === "undefined") return; // Pastikan sudah di client side
+    
     (async () => {
       console.log('Mulai fetch kategori dan merek...');
       try {
-        console.log('Calling getAllKategoriBarang');
-        const kategori = await getAllKategoriBarang(token);
+        console.log('Calling getAllKategoriBarang with withAuthRetry');
+        const kategori = await withAuthRetry((token) => getAllKategoriBarang(token));
         console.log('Response kategori:', kategori);
         setKategoriList(Array.isArray(kategori) ? kategori : []);
       } catch (e) {
         console.error('Gagal fetch kategori', e);
         setKategoriList([]);
       }
+      
       try {
-        console.log('Calling getAllMerek');
-        const merek = await getAllMerek(token);
+        console.log('Calling getAllMerek with withAuthRetry');
+        const merek = await withAuthRetry((token) => getAllMerek(token));
         console.log('Response merek:', merek);
         setMerekList(Array.isArray(merek) ? merek : []);
       } catch (e) {
@@ -99,22 +77,48 @@ export default function KasirPage() {
         setMerekList([]);
       }
     })();
-  }, [token]);
+  }, []); // Hapus dependency token karena withAuthRetry akan handle token
+
+  // Fungsi untuk refresh data produk
+  const refreshProdukData = async () => {
+    setLoadingProduk(true);
+    try {
+      console.log('Refreshing produk data...');
+      if (!filterKategori && !filterMerek) {
+        const data = await withAuthRetry((token) => getAllSparepart(token));
+        console.log('Response refresh sparepart:', data);
+        const dataArray = Array.isArray(data) ? data : [];
+        setProdukListOriginal(dataArray);
+        setProdukList(dataArray);
+      } else {
+        const params: { kategori?: string; merek?: string } = {};
+        if (filterKategori) params.kategori = filterKategori;
+        if (filterMerek) params.merek = filterMerek;
+        console.log('Calling refresh searchSparepart dengan params:', params);
+        const data = await withAuthRetry((token) => searchSparepart(token, params));
+        console.log('Response refresh search sparepart:', data);
+        const dataArray = Array.isArray(data) ? data : [];
+        setProdukListOriginal(dataArray);
+        setProdukList(dataArray);
+      }
+    } catch (e) {
+      console.error('Gagal refresh produk', e);
+    } finally {
+      setLoadingProduk(false);
+    }
+  };
 
   // Fetch produk/sparepart (dengan filter)
   const [loadingProduk, setLoadingProduk] = useState(false);
   useEffect(() => {
-    console.log('Token untuk fetch produk:', token);
-    if (!token) {
-      console.log('Token kosong, tidak fetch produk');
-      return;
-    }
+    if (typeof window === "undefined") return; // Pastikan sudah di client side
+    
     setLoadingProduk(true);
     (async () => {
       try {
         console.log('Mulai fetch produk...');
         if (!filterKategori && !filterMerek) {
-          const data = await getAllSparepart(token);
+          const data = await withAuthRetry((token) => getAllSparepart(token));
           console.log('Response sparepart:', data);
           console.log('Sample produk:', data?.[0]); // Debug struktur data
           const dataArray = Array.isArray(data) ? data : [];
@@ -125,7 +129,7 @@ export default function KasirPage() {
           if (filterKategori) params.kategori = filterKategori;
           if (filterMerek) params.merek = filterMerek;
           console.log('Calling searchSparepart dengan params:', params);
-          const data = await searchSparepart(token, params);
+          const data = await withAuthRetry((token) => searchSparepart(token, params));
           console.log('Response search sparepart:', data);
           const dataArray = Array.isArray(data) ? data : [];
           setProdukListOriginal(dataArray);
@@ -139,7 +143,7 @@ export default function KasirPage() {
         setLoadingProduk(false);
       }
     })();
-  }, [token, filterKategori, filterMerek]);
+  }, [filterKategori, filterMerek]); // Hapus dependency token
 
   // Fungsi untuk highlight text yang cocok dengan pencarian
   const highlightText = (text: string, searchTerm: string) => {
@@ -186,8 +190,8 @@ export default function KasirPage() {
 
   // Tambah produk ke keranjang
   const tambahKeKeranjang = (produk: any) => {
-    // Validasi stok
-    if (produk.sisa <= 0) {
+    // Validasi stok hanya untuk transaksi keluar (penjualan)
+    if (tipeTransaksi === 'keluar' && produk.sisa <= 0) {
       alert(`Stok barang "${produk.nama_barang}" kosong! Tidak bisa menambahkan ke keranjang.`);
       return;
     }
@@ -198,8 +202,8 @@ export default function KasirPage() {
     setKeranjang((prev) => {
       const exist = prev.find((item) => item.id_sparepart === produk.id_sparepart);
       if (exist) {
-        // Validasi stok saat menambah qty
-        if (exist.qty >= produk.sisa) {
+        // Validasi stok saat menambah qty hanya untuk transaksi keluar
+        if (tipeTransaksi === 'keluar' && exist.qty >= produk.sisa) {
           alert(`Stok tidak mencukupi! Stok tersedia: ${produk.sisa}`);
           return prev;
         }
@@ -233,8 +237,8 @@ export default function KasirPage() {
   const ubahQty = (id_sparepart: string, qty: number) => {
     setKeranjang((prev) => prev.map((item) => {
       if (item.id_sparepart === id_sparepart) {
-        // Validasi stok
-        if (qty > item.stok) {
+        // Validasi stok hanya untuk transaksi keluar (penjualan)
+        if (tipeTransaksi === 'keluar' && qty > item.stok) {
           alert(`Stok tidak mencukupi! Stok tersedia: ${item.stok}`);
           return item;
         }
@@ -351,22 +355,8 @@ export default function KasirPage() {
         }
       });
       
-      // Ambil token dari localStorage
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        alert("Session tidak ditemukan. Silakan login ulang.");
-        return;
-      }
-      
-      const user = JSON.parse(userData);
-      const token = user.access_token;
-      if (!token) {
-        alert("Token tidak ditemukan. Silakan login ulang.");
-        return;
-      }
-      
-      // Panggil API untuk menyimpan transaksi
-      const response = await addTransaksi(token, transaksiData);
+      // Panggil API untuk menyimpan transaksi menggunakan withAuthRetry
+      const response = await withAuthRetry((token) => addTransaksi(token, transaksiData));
       
       console.log("Response transaksi:", response);
       console.log("Response data:", response.data);
@@ -391,7 +381,7 @@ export default function KasirPage() {
         id_transaksi: transactionId, // Gunakan ID asli dari database
         nomor_transaksi: response.nomor_transaksi || response.data?.nomor_transaksi || `TRX-${Date.now()}`,
         tanggal: response.tanggal || response.data?.tanggal || new Date().toISOString(),
-        total: response.harga_total || response.data?.harga_total || keranjang.reduce((a, b) => a + (Number(b.harga_total) || 0), 0), // Tambahkan total
+        total: tipeTransaksi === 'masuk' ? 0 : (response.harga_total || response.data?.harga_total || keranjang.reduce((a, b) => a + (Number(b.harga_total) || 0), 0)), // Total 0 untuk transaksi masuk
         items: keranjang // Gunakan data keranjang untuk tampilan yang lengkap
       };
       
@@ -401,6 +391,10 @@ export default function KasirPage() {
       
       // Reset keranjang setelah transaksi berhasil
       setKeranjang([]);
+      
+      // Refresh data produk untuk update stok (terutama untuk transaksi masuk)
+      console.log('Refreshing produk data after transaction...');
+      await refreshProdukData();
       
     } catch (error) {
       console.error("Error saat membuat transaksi:", error);
@@ -420,27 +414,12 @@ export default function KasirPage() {
     try {
       console.log("Cetak struk untuk transaksi ID:", detailTransaksi.id_transaksi);
       
-      // Ambil token dari localStorage dengan cara yang benar
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        alert("Session tidak ditemukan. Silakan login ulang.");
-        return;
-      }
-      
-      const user = JSON.parse(userData);
-      const token = user.access_token;
-      if (!token) {
-        alert("Token tidak ditemukan. Silakan login ulang.");
-        return;
-      }
-      
-      console.log("Calling getStrukHTML with:", { 
-        transaksiId: detailTransaksi.id_transaksi,
-        tokenLength: token.length 
+      console.log("Calling getStrukHTML with withAuthRetry:", { 
+        transaksiId: detailTransaksi.id_transaksi
       });
       
-      // Ambil HTML struk dari backend menggunakan endpoint /struk-html
-      const strukHtml = await getStrukHTML(token, detailTransaksi.id_transaksi);
+      // Ambil HTML struk dari backend menggunakan endpoint /struk-html dengan withAuthRetry
+      const strukHtml = await withAuthRetry((token) => getStrukHTML(token, detailTransaksi.id_transaksi));
       
       console.log("HTML content received, length:", strukHtml?.length);
       
@@ -500,22 +479,8 @@ export default function KasirPage() {
     }
 
     try {
-      // Ambil token dari localStorage dengan cara yang benar
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        alert("Session tidak ditemukan. Silakan login ulang.");
-        return;
-      }
-      
-      const user = JSON.parse(userData);
-      const token = user.access_token;
-      if (!token) {
-        alert("Token tidak ditemukan. Silakan login ulang.");
-        return;
-      }
-      
-      // Ambil PDF struk dari backend menggunakan endpoint /struk-pdf
-      const pdfBlob = await cetakStrukTransaksi(token, detailTransaksi.id_transaksi);
+      // Ambil PDF struk dari backend menggunakan endpoint /struk-pdf dengan withAuthRetry
+      const pdfBlob = await withAuthRetry((token) => cetakStrukTransaksi(token, detailTransaksi.id_transaksi));
       
       // Buat URL untuk blob dan download
       const url = window.URL.createObjectURL(pdfBlob);
@@ -549,21 +514,21 @@ export default function KasirPage() {
               onClick={() => setTipeTransaksi('keluar')}
               className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border transition-all ${
                 tipeTransaksi === 'keluar' 
-                  ? 'bg-green-500 text-white border-green-500' 
-                  : 'bg-white text-green-700 border-green-300 hover:bg-green-50'
+                  ? 'bg-red-500 text-white border-red-500' 
+                  : 'bg-white text-red-700 border-red-300 hover:bg-red-50'
               }`}
             >
-              📤 Penjualan (Keluar)
+              📤 Barang Keluar
             </button>
             <button
               onClick={() => setTipeTransaksi('masuk')}
               className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold border transition-all ${
                 tipeTransaksi === 'masuk' 
-                  ? 'bg-blue-500 text-white border-blue-500' 
-                  : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
+                  ? 'bg-green-500 text-white border-green-500' 
+                  : 'bg-white text-green-700 border-green-300 hover:bg-green-50'
               }`}
             >
-              📥 Retur (Masuk)
+              📥 Barang Masuk
             </button>
           </div>
         </div>
@@ -806,7 +771,13 @@ export default function KasirPage() {
                   </div>
                   <div className="flex flex-col items-end">
                     <button onClick={() => hapusItem(item.id_sparepart)} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={18} /></button>
-                    <div className="text-xs font-bold mt-2">Rp {item.harga_total.toLocaleString()}</div>
+                    <div className="text-xs font-bold mt-2">
+                      {tipeTransaksi === 'masuk' ? (
+                        <span className="text-green-600">Rp 0</span>
+                      ) : (
+                        <span>Rp {item.harga_total.toLocaleString()}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -814,7 +785,11 @@ export default function KasirPage() {
               <div className="flex justify-between items-center pt-2 border-t mt-2">
                 <span className="font-semibold">Total</span>
                 <span className="font-bold text-lg text-blue-700">
-                  Rp {keranjang.reduce((a, b) => a + (Number(b.harga_total) || 0), 0).toLocaleString()}
+                  {tipeTransaksi === 'masuk' ? (
+                    <span className="text-green-600">Rp 0</span>
+                  ) : (
+                    <span>Rp {keranjang.reduce((a, b) => a + (Number(b.harga_total) || 0), 0).toLocaleString()}</span>
+                  )}
                 </span>
               </div>
 
@@ -910,6 +885,8 @@ export default function KasirPage() {
             // Tutup modal jika klik di background
             if (e.target === e.currentTarget) {
               setShowModalTransaksi(false);
+              // Refresh data saat tutup modal
+              refreshProdukData();
             }
           }}
         >
@@ -931,9 +908,9 @@ export default function KasirPage() {
               <div className="flex justify-between">
                 <span className="font-semibold">Tipe:</span>
                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                  detailTransaksi.tipe === 'keluar' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                  detailTransaksi.tipe === 'masuk' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                 }`}>
-                  {detailTransaksi.tipe === 'keluar' ? 'Penjualan' : 'Retur'}
+                  {detailTransaksi.tipe === 'masuk' ? '📥 Barang Masuk' : '📤 Barang Keluar'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -947,19 +924,25 @@ export default function KasirPage() {
             </div>
 
             <div className="border-t border-b py-4 mb-4">
-              <h3 className="font-semibold mb-3">Item yang dibeli:</h3>
+              <h3 className="font-semibold mb-3">
+                {tipeTransaksi === 'masuk' ? 'Item yang direstok:' : 'Item yang dibeli:'}
+              </h3>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {detailTransaksi.items.map((item: any, index: number) => (
                   <div key={index} className="flex justify-between items-start text-sm">
                     <div className="flex-1">
                       <div className="font-medium">{item.nama_barang}</div>
                       <div className="text-gray-500 text-xs">
-                        {item.qty} x Rp {item.harga_jual.toLocaleString()} 
-                        {item.eceran && <span className="text-orange-600"> (Eceran)</span>}
+                        {item.qty} x {tipeTransaksi === 'masuk' ? 'unit' : `Rp ${item.harga_jual.toLocaleString()}`}
+                        {item.eceran && tipeTransaksi !== 'masuk' && <span className="text-orange-600"> (Eceran)</span>}
                       </div>
                     </div>
                     <div className="font-semibold">
-                      Rp {item.harga_total.toLocaleString()}
+                      {tipeTransaksi === 'masuk' ? (
+                        <span className="text-green-600">+ {item.qty} unit</span>
+                      ) : (
+                        <span>Rp {item.harga_total.toLocaleString()}</span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -968,8 +951,11 @@ export default function KasirPage() {
 
             <div className="flex justify-between items-center text-lg font-bold mb-6">
               <span>TOTAL:</span>
-              <span className="text-green-600">
+              <span className={`${tipeTransaksi === 'masuk' ? 'text-green-600' : 'text-green-600'}`}>
                 Rp {(detailTransaksi.total || 0).toLocaleString()}
+                {tipeTransaksi === 'masuk' && (
+                  <span className="text-xs font-normal text-gray-500 ml-2">(Transaksi Masuk)</span>
+                )}
               </span>
             </div>
 
@@ -987,7 +973,11 @@ export default function KasirPage() {
                 📄 Simpan PDF
               </button>
               <button
-                onClick={() => setShowModalTransaksi(false)}
+                onClick={() => {
+                  setShowModalTransaksi(false);
+                  // Optional: refresh data lagi saat tutup modal untuk memastikan
+                  refreshProdukData();
+                }}
                 className="flex-1 py-2 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all font-semibold"
               >
                 Tutup

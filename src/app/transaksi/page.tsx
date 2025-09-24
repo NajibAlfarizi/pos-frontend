@@ -89,6 +89,10 @@ export default function TransaksiPage() {
   const [openEditForm, setOpenEditForm] = useState(false);
   const [selectedTransaksi, setSelectedTransaksi] = useState<Transaksi | null>(null);
   const [editForm, setEditForm] = useState({
+    tanggal: "",
+    jumlah: 0,
+    harga_total: 0,
+    tipe: "",
     keterangan: "",
     tipe_pembayaran: "",
     status_pembayaran: "",
@@ -247,10 +251,14 @@ export default function TransaksiPage() {
   const handleEdit = (transaksi: Transaksi) => {
     setSelectedTransaksi(transaksi);
     setEditForm({
+      tanggal: transaksi.tanggal.split('T')[0], // Format YYYY-MM-DD untuk input date
+      jumlah: transaksi.jumlah || 0,
+      harga_total: transaksi.harga_total || 0,
+      tipe: transaksi.tipe || "",
       keterangan: transaksi.keterangan || "",
       tipe_pembayaran: transaksi.tipe_pembayaran || "",
       status_pembayaran: transaksi.status_pembayaran || "",
-      due: transaksi.due || "",
+      due: transaksi.due ? transaksi.due.split('T')[0] : "",
     });
     setOpenEditForm(true);
   };
@@ -830,7 +838,7 @@ export default function TransaksiPage() {
 
       {/* Modal Edit Transaksi */}
       <Dialog open={openEditForm} onOpenChange={setOpenEditForm}>
-        <DialogContent className="sm:max-w-lg rounded-2xl shadow-xl">
+        <DialogContent className="sm:max-w-2xl rounded-2xl shadow-xl">
           <DialogHeader className="border-b pb-3">
             <DialogTitle className="text-lg font-semibold text-gray-800">
               Edit Transaksi
@@ -846,29 +854,57 @@ export default function TransaksiPage() {
                     <span className="ml-2 text-gray-600">{selectedTransaksi.id_transaksi.slice(0, 8)}...</span>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Tanggal:</span>
-                    <span className="ml-2 text-gray-600">
-                      {new Date(selectedTransaksi.tanggal).toLocaleDateString('id-ID')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Total:</span>
-                    <span className="ml-2 text-gray-600 font-semibold">
-                      {selectedTransaksi.tipe === "masuk" ? "Rp 0" : `Rp ${selectedTransaksi.harga_total.toLocaleString()}`}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Tipe:</span>
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                      selectedTransaksi.tipe === "masuk" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    }`}>
-                      {selectedTransaksi.tipe?.toUpperCase()}
-                    </span>
+                    <span className="font-medium text-gray-700">User:</span>
+                    <span className="ml-2 text-gray-600">{selectedTransaksi.user || 'System'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Form Edit */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Tanggal</label>
+                  <Input
+                    type="date"
+                    value={editForm.tanggal}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, tanggal: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Tipe</label>
+                  <Select value={editForm.tipe} onValueChange={(val) => setEditForm(prev => ({ ...prev, tipe: val }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Tipe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="masuk">Masuk</SelectItem>
+                      <SelectItem value="keluar">Keluar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Jumlah</label>
+                  <Input
+                    type="number"
+                    value={editForm.jumlah}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, jumlah: Number(e.target.value) }))}
+                    placeholder="Jumlah barang"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Harga Total</label>
+                  <Input
+                    type="number"
+                    value={editForm.harga_total}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, harga_total: Number(e.target.value) }))}
+                    placeholder="Harga total"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block mb-1 text-sm font-medium text-gray-700">Keterangan</label>
                 <Input
@@ -877,6 +913,7 @@ export default function TransaksiPage() {
                   placeholder="Keterangan transaksi"
                 />
               </div>
+              
               <div>
                 <label className="block mb-1 text-sm font-medium text-gray-700">Tipe Pembayaran</label>
                 <Select value={editForm.tipe_pembayaran} onValueChange={(val) => setEditForm(prev => ({ ...prev, tipe_pembayaran: val }))}>
@@ -889,8 +926,9 @@ export default function TransaksiPage() {
                   </SelectContent>
                 </Select>
               </div>
+              
               {editForm.tipe_pembayaran === 'kredit' && (
-                <>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium text-gray-700">Status Pembayaran</label>
                     <Select value={editForm.status_pembayaran} onValueChange={(val) => setEditForm(prev => ({ ...prev, status_pembayaran: val }))}>
@@ -911,8 +949,9 @@ export default function TransaksiPage() {
                       onChange={(e) => setEditForm(prev => ({ ...prev, due: e.target.value }))}
                     />
                   </div>
-                </>
+                </div>
               )}
+              
               <div className="flex gap-3 pt-4">
                 <Button variant="outline" className="flex-1" onClick={() => setOpenEditForm(false)}>
                   Batal
