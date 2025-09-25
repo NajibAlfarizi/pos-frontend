@@ -49,7 +49,7 @@ const RupiahInput: React.FC<{ name: string; label: string; defaultValue?: number
       type="text"
       inputMode="numeric"
       pattern="[0-9.]*"
-      className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
+      className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full text-sm"
       placeholder={label}
       value={value}
       onChange={e => {
@@ -324,96 +324,96 @@ const SparepartPage: React.FC = () => {
 
   // UI
   return (
-  <div className="max-w-full mx-auto py-6 px-4">
+  <div className="max-w-full mx-auto py-3 px-3 pb-28 md:pb-6 md:py-6 md:px-4">
       <Toaster position="top-right" richColors />
       
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+      <div className="mb-4 md:mb-6">
+        <div className="flex flex-col gap-3 mb-4 md:flex-row md:items-center md:justify-between md:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Manajemen Sparepart</h1>
-            <p className="text-gray-600 text-sm mt-1">Kelola inventory sparepart Anda dengan mudah</p>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Manajemen Sparepart</h1>
+            <p className="text-gray-600 text-xs md:text-sm mt-1">Kelola inventory sparepart Anda dengan mudah</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full md:w-auto">
             <button
-              className="flex items-center gap-2 border border-green-600 text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition"
+              className="flex items-center justify-center gap-2 border border-green-600 text-green-600 hover:bg-green-50 px-3 py-2 rounded-lg shadow-sm text-xs md:text-sm font-medium transition flex-1 md:flex-none"
               onClick={handleExportExcel}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
               </svg>
-              Export
+              <span className="hidden md:inline">Export</span>
             </button>
             <button
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition"
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg shadow-sm text-xs md:text-sm font-medium transition flex-1 md:flex-none"
               onClick={handleAdd}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Tambah Sparepart
+              <span className="md:inline">Tambah</span>
             </button>
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 md:gap-4 md:mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Total Sparepart</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{sparepartList.length}</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900 mt-1">{sparepartList.length}</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 md:w-5 md:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Stok Normal</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">
+                <p className="text-lg md:text-2xl font-bold text-green-600 mt-1">
                   {sparepartList.filter(sp => sp.sisa > 1).length}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 md:w-5 md:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Stok Rendah</p>
-                <p className="text-2xl font-bold text-orange-600 mt-1">
+                <p className="text-lg md:text-2xl font-bold text-orange-600 mt-1">
                   {sparepartList.filter(sp => sp.sisa === 1).length}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 md:w-5 md:h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.86-.833-2.632 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Stok Habis</p>
-                <p className="text-2xl font-bold text-red-600 mt-1">
+                <p className="text-lg md:text-2xl font-bold text-red-600 mt-1">
                   {sparepartList.filter(sp => sp.sisa === 0).length}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 md:w-5 md:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
@@ -447,17 +447,17 @@ const SparepartPage: React.FC = () => {
       {/* Filter Tabs */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-6 px-4" aria-label="Tabs">
+          <nav className="flex space-x-2 md:space-x-6 px-3 md:px-4 overflow-x-auto scrollbar-hide" aria-label="Tabs">
             <button
               onClick={() => setFilterStatus('all')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition ${
+              className={`py-3 px-1 border-b-2 font-medium text-xs md:text-sm transition whitespace-nowrap ${
                 filterStatus === 'all' 
                   ? 'border-blue-500 text-blue-600' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Semua Sparepart
-              <span className={`ml-2 py-0.5 px-2 rounded-full text-xs font-medium ${
+              Semua
+              <span className={`ml-1 md:ml-2 py-0.5 px-1.5 md:px-2 rounded-full text-xs font-medium ${
                 filterStatus === 'all' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
               }`}>
                 {filteredSparepart.length}
@@ -465,14 +465,14 @@ const SparepartPage: React.FC = () => {
             </button>
             <button
               onClick={() => setFilterStatus('normal')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition ${
+              className={`py-3 px-1 border-b-2 font-medium text-xs md:text-sm transition whitespace-nowrap ${
                 filterStatus === 'normal' 
                   ? 'border-green-500 text-green-600' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Stok Normal
-              <span className={`ml-2 py-0.5 px-2 rounded-full text-xs font-medium ${
+              Normal
+              <span className={`ml-1 md:ml-2 py-0.5 px-1.5 md:px-2 rounded-full text-xs font-medium ${
                 filterStatus === 'normal' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
               }`}>
                 {sparepartList.filter(sp => sp.sisa > 1).length}
@@ -480,14 +480,14 @@ const SparepartPage: React.FC = () => {
             </button>
             <button
               onClick={() => setFilterStatus('low')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition ${
+              className={`py-3 px-1 border-b-2 font-medium text-xs md:text-sm transition whitespace-nowrap ${
                 filterStatus === 'low' 
                   ? 'border-orange-500 text-orange-600' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Stok Rendah
-              <span className={`ml-2 py-0.5 px-2 rounded-full text-xs font-medium ${
+              Rendah
+              <span className={`ml-1 md:ml-2 py-0.5 px-1.5 md:px-2 rounded-full text-xs font-medium ${
                 filterStatus === 'low' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600'
               }`}>
                 {sparepartList.filter(sp => sp.sisa === 1).length}
@@ -495,14 +495,14 @@ const SparepartPage: React.FC = () => {
             </button>
             <button
               onClick={() => setFilterStatus('empty')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition ${
+              className={`py-3 px-1 border-b-2 font-medium text-xs md:text-sm transition whitespace-nowrap ${
                 filterStatus === 'empty' 
                   ? 'border-red-500 text-red-600' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Stok Habis
-              <span className={`ml-2 py-0.5 px-2 rounded-full text-xs font-medium ${
+              Habis
+              <span className={`ml-1 md:ml-2 py-0.5 px-1.5 md:px-2 rounded-full text-xs font-medium ${
                 filterStatus === 'empty' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
               }`}>
                 {sparepartList.filter(sp => sp.sisa === 0).length}
@@ -512,8 +512,8 @@ const SparepartPage: React.FC = () => {
         </div>
 
         {/* Search and Controls */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-3">
+        <div className="p-3 md:p-4 border-b border-gray-200">
+          <div className="flex flex-col gap-3">
             <div className="flex-1">
               <div className="relative">
                 <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -523,7 +523,7 @@ const SparepartPage: React.FC = () => {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Cari berdasarkan nama sparepart atau kode..."
+                  placeholder="Cari sparepart atau kode..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm"
                 />
               </div>
@@ -532,7 +532,7 @@ const SparepartPage: React.FC = () => {
               <select
                 value={selectedKategori}
                 onChange={(e) => setSelectedKategori(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[120px] text-sm"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white flex-1 md:flex-none md:min-w-[120px] text-sm"
               >
                 <option value="">Semua Kategori</option>
                 {kategoriList.map((k) => (
@@ -542,7 +542,7 @@ const SparepartPage: React.FC = () => {
               <select
                 value={selectedMerek}
                 onChange={(e) => setSelectedMerek(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[120px] text-sm"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white flex-1 md:flex-none md:min-w-[120px] text-sm"
               >
                 <option value="">Semua Merek</option>
                 {merekList.map((m) => (
@@ -555,7 +555,117 @@ const SparepartPage: React.FC = () => {
 
         {/* Table Content */}
         <div className="bg-white">
-          <div className="w-full">
+          {/* Mobile Card View */}
+          <div className="md:hidden">
+            {filteredSparepart.length === 0 ? (
+              <div className="px-6 py-8 text-center text-gray-500">
+                <div className="flex flex-col items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <p className="text-sm font-medium text-gray-900">Tidak ada sparepart</p>
+                  <p className="text-xs text-gray-500">Data tidak ditemukan sesuai filter.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {filteredSparepart.map((sp, index) => (
+                  <div key={sp.id_sparepart} className="p-4 hover:bg-gray-50 transition">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded font-medium">#{index + 1}</span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          sp.sisa === 0 ? 'bg-red-100 text-red-700' : 
+                          sp.sisa === 1 ? 'bg-orange-100 text-orange-700' : 
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {sp.sisa === 0 ? 'Habis' : sp.sisa === 1 ? 'Rendah' : 'Normal'}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleDetail(sp)}
+                          className="p-1.5 border border-gray-300 rounded text-gray-700 bg-white hover:bg-gray-50 transition"
+                          title="Detail"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleEdit(sp)}
+                          className="p-1.5 border border-blue-300 rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition"
+                          title="Edit"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(sp.id_sparepart)}
+                          className="p-1.5 border border-red-300 rounded text-red-700 bg-red-50 hover:bg-red-100 transition"
+                          title="Hapus"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{sp.nama_barang}</p>
+                        <p className="text-xs text-gray-500">Kode: {sp.kode_barang}</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <p className="text-gray-500">Kategori</p>
+                          <p className="font-medium text-gray-900">
+                            {kategoriList.find(k => k.id_kategori_barang === sp.id_kategori_barang)?.nama_kategori || '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Merek</p>
+                          <p className="font-medium text-gray-900">
+                            {merekList.find(m => m.id_merek === sp.id_merek)?.nama_merek || '-'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <p className="text-gray-500">Stok</p>
+                          <p className="font-semibold text-blue-700">{sp.jumlah}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Terjual</p>
+                          <p className="font-semibold text-gray-700">{sp.terjual}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Harga</p>
+                          <p className="font-semibold text-green-700">
+                            {sp.harga_jual > 0 ? `${formatRupiah(sp.harga_jual)}` : '-'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {sp.sumber && (
+                        <div className="text-xs">
+                          <p className="text-gray-500">Sumber</p>
+                          <p className="font-medium text-gray-700">{sp.sumber}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block w-full">
             <table className="w-full table-fixed divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -707,123 +817,125 @@ const SparepartPage: React.FC = () => {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <form
-            className="bg-white rounded-2xl shadow-2xl border w-full max-w-xl p-8 animate-fadeIn"
+            className="bg-white rounded-2xl shadow-2xl border w-full max-w-xl max-h-[90vh] overflow-y-auto animate-fadeIn"
             onSubmit={handleSubmit}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b pb-4 mb-6">
-              <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
-                {modalType === 'add' ? (
-                  <>
-                    Tambah Sparepart
-                  </>
-                ) : (
-                  <>
-                    Edit Sparepart
-                  </>
-                )}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-red-500 text-lg"
-              >
-                ✕
-              </button>
-            </div>
+            <div className="p-6 md:p-8">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b pb-4 mb-6">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center gap-2">
+                  {modalType === 'add' ? (
+                    <>
+                      Tambah Sparepart
+                    </>
+                  ) : (
+                    <>
+                      Edit Sparepart
+                    </>
+                  )}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-500 hover:text-red-500 text-lg p-1"
+                >
+                  ✕
+                </button>
+              </div>
 
-            {/* Input Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input
-                name="kode_barang"
-                type="text"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                placeholder="Kode Barang"
-                defaultValue={selectedSparepart?.kode_barang || ''}
-                required
-              />
-              <input
-                name="nama_barang"
-                type="text"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                placeholder="Nama Barang"
-                defaultValue={selectedSparepart?.nama_barang || ''}
-                required
-              />
+              {/* Input Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  name="kode_barang"
+                  type="text"
+                  className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full text-sm"
+                  placeholder="Kode Barang"
+                  defaultValue={selectedSparepart?.kode_barang || ''}
+                  required
+                />
+                <input
+                  name="nama_barang"
+                  type="text"
+                  className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full text-sm"
+                  placeholder="Nama Barang"
+                  defaultValue={selectedSparepart?.nama_barang || ''}
+                  required
+                />
 
-              <select
-                name="id_kategori_barang"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                defaultValue={selectedSparepart?.id_kategori_barang || ''}
-                required
-              >
-                <option value="">Pilih Kategori</option>
-                {kategoriList.map((kat: any) => (
-                  <option key={kat.id_kategori_barang} value={kat.id_kategori_barang}>
-                    {kat.nama_kategori}
-                  </option>
-                ))}
-              </select>
+                <select
+                  name="id_kategori_barang"
+                  className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full text-sm"
+                  defaultValue={selectedSparepart?.id_kategori_barang || ''}
+                  required
+                >
+                  <option value="">Pilih Kategori</option>
+                  {kategoriList.map((kat: any) => (
+                    <option key={kat.id_kategori_barang} value={kat.id_kategori_barang}>
+                      {kat.nama_kategori}
+                    </option>
+                  ))}
+                </select>
 
-              <select
-                name="id_merek"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                defaultValue={selectedSparepart?.id_merek || ''}
-                required
-              >
-                <option value="">Pilih Merek</option>
-                {merekList.map((mrk: any) => (
-                  <option key={mrk.id_merek} value={mrk.id_merek}>
-                    {mrk.nama_merek}
-                  </option>
-                ))}
-              </select>
+                <select
+                  name="id_merek"
+                  className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full text-sm"
+                  defaultValue={selectedSparepart?.id_merek || ''}
+                  required
+                >
+                  <option value="">Pilih Merek</option>
+                  {merekList.map((mrk: any) => (
+                    <option key={mrk.id_merek} value={mrk.id_merek}>
+                      {mrk.nama_merek}
+                    </option>
+                  ))}
+                </select>
 
-              <input
-                name="sumber"
-                type="text"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                placeholder="Sumber"
-                defaultValue={selectedSparepart?.sumber || ''}
-              />
-              <input
-                name="jumlah"
-                type="number"
-                className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
-                placeholder="Jumlah stok awal"
-                defaultValue={selectedSparepart?.jumlah || ''}
-                required
-              />
-              {/* Harga Modal & Harga Jual with Rupiah formatting */}
-              <RupiahInput
-                name="harga_modal"
-                label="Harga modal per unit"
-                defaultValue={selectedSparepart?.harga_modal}
-              />
-              <RupiahInput
-                name="harga_jual"
-                label="Harga jual per unit"
-                defaultValue={selectedSparepart?.harga_jual}
-              />
-            </div>
+                <input
+                  name="sumber"
+                  type="text"
+                  className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full text-sm"
+                  placeholder="Sumber"
+                  defaultValue={selectedSparepart?.sumber || ''}
+                />
+                <input
+                  name="jumlah"
+                  type="number"
+                  className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 w-full text-sm"
+                  placeholder="Jumlah stok awal"
+                  defaultValue={selectedSparepart?.jumlah || ''}
+                  required
+                />
+                {/* Harga Modal & Harga Jual with Rupiah formatting */}
+                <RupiahInput
+                  name="harga_modal"
+                  label="Harga modal per unit"
+                  defaultValue={selectedSparepart?.harga_modal}
+                />
+                <RupiahInput
+                  name="harga_jual"
+                  label="Harga jual per unit"
+                  defaultValue={selectedSparepart?.harga_jual}
+                />
+              </div>
 
-            {/* Actions */}
-            <div className="flex gap-4 justify-end mt-8">
-              <button
-                type="button"
-                className="px-5 py-2 rounded-lg border text-gray-600 font-medium hover:bg-gray-100 transition"
-                onClick={() => setShowModal(false)}
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition"
-              >
-                Simpan
-              </button>
+              {/* Actions */}
+              <div className="flex flex-col md:flex-row gap-3 md:gap-4 justify-end mt-6 md:mt-8">
+                <button
+                  type="button"
+                  className="px-5 py-2 rounded-lg border text-gray-600 font-medium hover:bg-gray-100 transition order-2 md:order-1"
+                  onClick={() => setShowModal(false)}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition order-1 md:order-2"
+                >
+                  Simpan
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -831,100 +943,102 @@ const SparepartPage: React.FC = () => {
 
       {/* Drawer/Modal Detail Sparepart */}
       {detailSparepart && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 relative animate-fadeIn">
-
-            {/* Header */}
-            <div className="flex items-center justify-between border-b pb-4 mb-6">
-              <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
-                <span className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-lg">🔍</span>
-                Detail Sparepart: <span className="text-blue-700">{detailSparepart.nama_barang}</span>
-              </h2>
-              <button
-                onClick={() => setDetailSparepart(null)}
-                className="text-gray-400 hover:text-red-500 text-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              {/* Informasi Umum */}
-              <div>
-                <h3 className="text-gray-600 font-semibold mb-3">Informasi Umum</h3>
-                <ul className="space-y-2 text-sm">
-                  <li>Kode Barang: <span className="font-bold">{detailSparepart.kode_barang}</span></li>
-                  <li>Nama Barang: <span className="font-bold">{detailSparepart.nama_barang}</span></li>
-                  <li>Kategori: <span className="font-bold">{detailSparepart.kategori_nama || kategoriList.find(k => k.id_kategori_barang === detailSparepart.id_kategori_barang)?.nama_kategori || '-'}</span></li>
-                  <li>Merek: <span className="font-bold">{detailSparepart.merek_nama || merekList.find(m => m.id_merek === detailSparepart.id_merek)?.nama_merek || '-'}</span></li>
-                  <li>Sumber: <span className="font-bold">{detailSparepart.sumber}</span></li>
-                </ul>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative animate-fadeIn">
+            <div className="p-6 md:p-8">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b pb-4 mb-6">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center gap-2">
+                  <span className="w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-sm md:text-lg">🔍</span>
+                  <span className="hidden md:inline">Detail Sparepart:</span>
+                  <span className="text-blue-700 text-sm md:text-base truncate">{detailSparepart.nama_barang}</span>
+                </h2>
+                <button
+                  onClick={() => setDetailSparepart(null)}
+                  className="text-gray-400 hover:text-red-500 text-lg md:text-xl p-1"
+                >
+                  ✕
+                </button>
               </div>
 
-              {/* Stok & Harga */}
-              <div>
-                <h3 className="text-gray-600 font-semibold mb-3">Stok & Harga</h3>
-                <ul className="space-y-2 text-sm">
-                  <li>Jumlah: <span className="font-bold">{detailSparepart.jumlah}</span></li>
-                  <li>Terjual: <span className="font-bold">{detailSparepart.terjual}</span></li>
-                  <li>
-                    Sisa:{" "}
-                    <span className={`font-bold ${detailSparepart.sisa <= 1 ? "text-red-600" : "text-gray-800"}`}>
-                      {detailSparepart.sisa}
-                    </span>
-                  </li>
-                </ul>
-
-                {/* Progress bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-3 mb-3">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all"
-                    style={{ width: `${detailSparepart.jumlah ? (detailSparepart.terjual / detailSparepart.jumlah) * 100 : 0}%` }}
-                  />
+              {/* Body */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                {/* Informasi Umum */}
+                <div>
+                  <h3 className="text-gray-600 font-semibold mb-3 text-sm md:text-base">Informasi Umum</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li>Kode Barang: <span className="font-bold">{detailSparepart.kode_barang}</span></li>
+                    <li>Nama Barang: <span className="font-bold">{detailSparepart.nama_barang}</span></li>
+                    <li>Kategori: <span className="font-bold">{detailSparepart.kategori_nama || kategoriList.find(k => k.id_kategori_barang === detailSparepart.id_kategori_barang)?.nama_kategori || '-'}</span></li>
+                    <li>Merek: <span className="font-bold">{detailSparepart.merek_nama || merekList.find(m => m.id_merek === detailSparepart.id_merek)?.nama_merek || '-'}</span></li>
+                    <li>Sumber: <span className="font-bold">{detailSparepart.sumber}</span></li>
+                  </ul>
                 </div>
 
-                <ul className="space-y-2 text-sm">
-                  <li>Harga Modal: <span className="font-bold text-gray-700">Rp{detailSparepart.harga_modal}</span></li>
-                  <li>Harga Jual: <span className="font-bold text-green-600">Rp{detailSparepart.harga_jual}</span></li>
-                </ul>
-              </div>
-            </div>
+                {/* Stok & Harga */}
+                <div>
+                  <h3 className="text-gray-600 font-semibold mb-3 text-sm md:text-base">Stok & Harga</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li>Jumlah: <span className="font-bold">{detailSparepart.jumlah}</span></li>
+                    <li>Terjual: <span className="font-bold">{detailSparepart.terjual}</span></li>
+                    <li>
+                      Sisa:{" "}
+                      <span className={`font-bold ${detailSparepart.sisa <= 1 ? "text-red-600" : "text-gray-800"}`}>
+                        {detailSparepart.sisa}
+                      </span>
+                    </li>
+                  </ul>
 
-            {/* Riwayat Transaksi */}
-            <div className="mt-8">
-              <h3 className="text-gray-600 font-semibold mb-3">Riwayat Transaksi</h3>
-              <div className="space-y-3 max-h-48 overflow-y-auto">
-                {riwayatTransaksi.length > 0 ? (
-                  riwayatTransaksi.map((trx: any, idx: number) => (
-                    <div key={idx} className="border rounded-lg p-3 text-sm bg-gray-50">
-                      <div>Tipe: <span className="font-bold">{trx.tipe}</span></div>
-                      <div>Jumlah: <span className="font-bold">{trx.jumlah}</span></div>
-                      <div>Tanggal: <span className="font-bold">{trx.tanggal}</span></div>
-                      <div>Keterangan: <span className="font-bold">{trx.keterangan}</span></div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="italic text-gray-400">Belum ada transaksi</div>
-                )}
-              </div>
-            </div>
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-3 mb-3">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${detailSparepart.jumlah ? (detailSparepart.terjual / detailSparepart.jumlah) * 100 : 0}%` }}
+                    />
+                  </div>
 
-            {/* Peringatan stok rendah */}
-            {detailSparepart.sisa <= 1 && (
-              <div className="bg-red-100 text-red-700 rounded-lg p-3 font-medium mt-6 flex items-center gap-2">
-                ⚠️ Stok sparepart ini rendah!
+                  <ul className="space-y-2 text-sm">
+                    <li>Harga Modal: <span className="font-bold text-gray-700">Rp{detailSparepart.harga_modal}</span></li>
+                    <li>Harga Jual: <span className="font-bold text-green-600">Rp{detailSparepart.harga_jual}</span></li>
+                  </ul>
+                </div>
               </div>
-            )}
 
-            {/* Footer */}
-            <div className="flex justify-end mt-8">
-              <button
-                className="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition"
-                onClick={() => setDetailSparepart(null)}
-              >
-                Tutup
-              </button>
+              {/* Riwayat Transaksi */}
+              <div className="mt-6 md:mt-8">
+                <h3 className="text-gray-600 font-semibold mb-3 text-sm md:text-base">Riwayat Transaksi</h3>
+                <div className="space-y-3 max-h-32 md:max-h-48 overflow-y-auto">
+                  {riwayatTransaksi.length > 0 ? (
+                    riwayatTransaksi.map((trx: any, idx: number) => (
+                      <div key={idx} className="border rounded-lg p-3 text-sm bg-gray-50">
+                        <div>Tipe: <span className="font-bold">{trx.tipe}</span></div>
+                        <div>Jumlah: <span className="font-bold">{trx.jumlah}</span></div>
+                        <div>Tanggal: <span className="font-bold">{trx.tanggal}</span></div>
+                        <div>Keterangan: <span className="font-bold">{trx.keterangan}</span></div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="italic text-gray-400 text-sm">Belum ada transaksi</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Peringatan stok rendah */}
+              {detailSparepart.sisa <= 1 && (
+                <div className="bg-red-100 text-red-700 rounded-lg p-3 font-medium mt-4 md:mt-6 flex items-center gap-2 text-sm">
+                  ⚠️ Stok sparepart ini rendah!
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="flex justify-end mt-6 md:mt-8">
+                <button
+                  className="px-4 md:px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition text-sm md:text-base"
+                  onClick={() => setDetailSparepart(null)}
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>

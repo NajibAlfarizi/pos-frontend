@@ -340,23 +340,23 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6 pb-24 md:pb-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* Header - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 space-y-3 sm:space-y-0">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Dashboard POS Sparepart</h1>
-            <p className="text-gray-600 mt-1">Kelola inventori dan penjualan spare part Anda</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Dashboard POS</h1>
+            <p className="text-gray-600 text-sm sm:text-base mt-1">Kelola inventori dan penjualan spare part</p>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-gray-800">{new Date().toLocaleDateString('id-ID', { 
+          <div className="flex items-center justify-between sm:justify-end sm:text-right">
+            <p className="text-lg sm:text-2xl font-bold text-gray-800">{new Date().toLocaleDateString('id-ID', { 
               day: '2-digit', 
               month: '2-digit', 
               year: 'numeric' 
             })}</p>
             <input
               type="date"
-              className="mt-1 border rounded-lg px-3 py-1 text-sm"
+              className="ml-3 sm:ml-0 sm:mt-1 border rounded-lg px-2 py-1 text-xs sm:text-sm touch-manipulation"
               value={selectedDate}
               onChange={e => setSelectedDate(e.target.value)}
               max={new Date().toISOString().slice(0, 10)}
@@ -364,25 +364,25 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          {/* Statistik Kartu Utama */}
-          <div className="lg:col-span-3">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          {/* Statistik Kartu Utama - Mobile First */}
+          <div className="xl:col-span-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
               {/* Penjualan Hari Ini */}
               {isLoadingStats ? (
                 <SkeletonCard />
               ) : (
                 <div 
                   onClick={handleShowTransaksiHariIni}
-                  className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 cursor-pointer group"
+                  className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all duration-300 cursor-pointer group touch-manipulation"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="bg-green-100 p-3 rounded-xl group-hover:bg-green-200 transition-colors">
-                      <DollarSign className="w-6 h-6 text-green-600" />
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="bg-green-100 p-2 sm:p-3 rounded-xl group-hover:bg-green-200 transition-colors">
+                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                     </div>
                   </div>
-                  <h3 className="text-gray-600 text-sm font-medium mb-1">Penjualan Hari Ini</h3>
-                  <div className="text-2xl font-bold text-gray-800">
+                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">Penjualan Hari Ini</h3>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-800">
                     <AnimatedNumber 
                       value={statistik?.penjualan_hari_ini || 0} 
                       prefix="Rp " 
@@ -396,14 +396,14 @@ const DashboardPage: React.FC = () => {
               {isLoadingStats ? (
                 <SkeletonCard />
               ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="bg-orange-100 p-3 rounded-xl group-hover:bg-orange-200 transition-colors">
-                      <CreditCard className="w-6 h-6 text-orange-600" />
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all duration-300 group">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="bg-orange-100 p-2 sm:p-3 rounded-xl group-hover:bg-orange-200 transition-colors">
+                      <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
                     </div>
                   </div>
-                  <h3 className="text-gray-600 text-sm font-medium mb-1">Total Kredit</h3>
-                  <div className="text-2xl font-bold text-gray-800">
+                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">Total Kredit</h3>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-800">
                     <AnimatedNumber 
                       value={statistik?.total_kredit || 0} 
                       prefix="Rp " 
@@ -417,15 +417,15 @@ const DashboardPage: React.FC = () => {
               {isLoadingSparepart ? (
                 <SkeletonCard />
               ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 group">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="bg-purple-100 p-3 rounded-xl group-hover:bg-purple-200 transition-colors">
-                      <Package className="w-6 h-6 text-purple-600" />
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all duration-300 group sm:col-span-2 md:col-span-1">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="bg-purple-100 p-2 sm:p-3 rounded-xl group-hover:bg-purple-200 transition-colors">
+                      <Package className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                     </div>
-                    <span className="text-purple-600 text-sm font-medium group-hover:text-purple-700">Items</span>
+                    <span className="text-purple-600 text-xs sm:text-sm font-medium group-hover:text-purple-700">Items</span>
                   </div>
-                  <h3 className="text-gray-600 text-sm font-medium mb-1">Total Produk</h3>
-                  <div className="text-2xl font-bold text-gray-800">
+                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">Total Produk</h3>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-800">
                     <AnimatedNumber 
                       value={totalSparepart} 
                       duration={1200}
@@ -435,18 +435,82 @@ const DashboardPage: React.FC = () => {
               )}
             </div>
 
-            {/* Tabel Transaksi Terbaru */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            {/* Tabel Transaksi Terbaru - Mobile Optimized */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-gray-700 font-semibold">Transaksi Terbaru</h3>
+                <h3 className="text-gray-700 font-semibold text-sm sm:text-base">Transaksi Terbaru</h3>
                 <button 
                   onClick={() => router.push('/transaksi')}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium touch-manipulation"
                 >
                   Lihat Semua
                 </button>
               </div>
-              <div className="overflow-x-auto">
+              {/* Mobile Card Layout for small screens */}
+              <div className="block sm:hidden space-y-3">
+                {transaksiTerbaru.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">Tidak ada transaksi terbaru</p>
+                  </div>
+                ) : (
+                  transaksiTerbaru.map((transaksi, index) => (
+                    <div key={transaksi.id_transaksi || index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {(() => {
+                              if (transaksi.detail_barang && transaksi.detail_barang.length > 0) {
+                                const firstItem = transaksi.detail_barang[0];
+                                const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === firstItem.id_sparepart);
+                                const namaBarang = firstItem.nama_barang || sparepartInfo?.nama_barang || `Item ${firstItem.id_sparepart || ''}`.trim();
+                                return namaBarang + (transaksi.detail_barang.length > 1 ? ` +${transaksi.detail_barang.length - 1}` : '');
+                              }
+                              else if (transaksi.items && transaksi.items.length > 0) {
+                                const firstItem = transaksi.items[0];
+                                const namaBarang = firstItem.nama_barang || firstItem.sparepart?.nama_barang || 'Barang tidak diketahui';
+                                return namaBarang + (transaksi.items.length > 1 ? ` +${transaksi.items.length - 1}` : '');
+                              }
+                              return 'Tidak ada item';
+                            })()}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                              transaksi.tipe === 'masuk' 
+                                ? 'bg-blue-100 text-blue-800'
+                                : transaksi.tipe === 'keluar'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-orange-100 text-orange-800'
+                            }`}>
+                              {transaksi.tipe === 'masuk' ? 'Masuk' : transaksi.tipe === 'keluar' ? 'Keluar' : 'Kredit'}
+                            </span>
+                            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                              transaksi.tipe_pembayaran === 'kredit'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {transaksi.tipe_pembayaran === 'kredit' ? 'Kredit' : 'Lunas'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right ml-2">
+                          <p className="text-sm font-bold text-gray-900">
+                            Rp {(transaksi.harga_total || 0).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(transaksi.tanggal).toLocaleDateString('id-ID', {
+                              day: '2-digit',
+                              month: 'short'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {/* Desktop Table Layout for larger screens */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-100">
@@ -547,47 +611,47 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Sidebar Kanan */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Sidebar Kanan - Mobile Optimized */}
+          <div className="xl:col-span-1 space-y-4 sm:space-y-6">
             {/* Ringkasan Inventori */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-gray-700 font-semibold mb-4">Ringkasan Inventori</h3>
-              <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+              <h3 className="text-gray-700 font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Ringkasan Inventori</h3>
+              <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-gray-600 text-sm">Barang Masuk</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-blue-500 rounded-full"></div>
+                    <span className="text-gray-600 text-xs sm:text-sm">Barang Masuk</span>
                   </div>
-                  <span className="font-bold text-gray-800">{statistik?.jumlah_barang_masuk || 0}</span>
+                  <span className="font-bold text-gray-800 text-sm sm:text-base">{statistik?.jumlah_barang_masuk || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-gray-600 text-sm">Barang Keluar</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-gray-600 text-xs sm:text-sm">Barang Keluar</span>
                   </div>
-                  <span className="font-bold text-gray-800">{statistik?.jumlah_barang_keluar || 0}</span>
+                  <span className="font-bold text-gray-800 text-sm sm:text-base">{statistik?.jumlah_barang_keluar || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    <span className="text-gray-600 text-sm">Barang Kredit</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-orange-500 rounded-full"></div>
+                    <span className="text-gray-600 text-xs sm:text-sm">Barang Kredit</span>
                   </div>
-                  <span className="font-bold text-gray-800">{statistik?.jumlah_barang_kredit || 0}</span>
+                  <span className="font-bold text-gray-800 text-sm sm:text-base">{statistik?.jumlah_barang_kredit || 0}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Modal Transaksi Hari Ini */}
+        {/* Modal Transaksi Hari Ini - Mobile Optimized */}
         {showTransaksiHariIni && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white rounded-t-xl sm:rounded-xl w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Transaksi Hari Ini</h2>
-                    <p className="text-gray-600 text-sm mt-1">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Transaksi Hari Ini</h2>
+                    <p className="text-gray-600 text-xs sm:text-sm mt-1">
                       {new Date(selectedDate).toLocaleDateString('id-ID', {
                         weekday: 'long',
                         day: '2-digit',
@@ -598,117 +662,155 @@ const DashboardPage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setShowTransaksiHariIni(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 touch-manipulation"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
 
-                <div className="overflow-y-auto max-h-[60vh]">
+                <div className="overflow-y-auto max-h-[60vh] sm:max-h-[60vh]">
                   {transaksiHariIni.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                        <ShoppingCart className="w-8 h-8 text-gray-400" />
+                    <div className="text-center py-8 sm:py-12">
+                      <div className="bg-gray-100 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                        <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
                       </div>
-                      <p className="text-gray-500 text-lg font-medium">Tidak ada transaksi hari ini</p>
-                      <p className="text-gray-400 text-sm mt-1">Belum ada penjualan pada tanggal yang dipilih</p>
+                      <p className="text-gray-500 text-base sm:text-lg font-medium">Tidak ada transaksi hari ini</p>
+                      <p className="text-gray-400 text-xs sm:text-sm mt-1">Belum ada penjualan pada tanggal yang dipilih</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-100 bg-gray-50">
-                            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Jam</th>
-                            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Barang</th>
-                            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-2">Tipe</th>
-                            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Total</th>
-                            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-2">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {transaksiHariIni.map((transaksi, index) => (
-                            <tr key={transaksi.id_transaksi || index} className="hover:bg-gray-50">
-                              <td className="py-2 px-3 text-xs font-medium text-gray-600">
-                                {new Date(transaksi.tanggal).toLocaleTimeString('id-ID', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </td>
-                              <td className="py-2 px-3 text-xs text-gray-900">
-                                {(() => {
-                                  // Cek format baru dengan detail_barang
-                                  if (transaksi.detail_barang && transaksi.detail_barang.length > 0) {
-                                    const firstItem = transaksi.detail_barang[0];
-                                    const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === firstItem.id_sparepart);
-                                    const namaBarang = firstItem.nama_barang || sparepartInfo?.nama_barang || `Item ${firstItem.id_sparepart || ''}`.trim();
-                                    return (
-                                      <div>
-                                        <span className="font-medium block truncate max-w-[120px]" title={namaBarang}>
-                                          {namaBarang}
-                                        </span>
-                                        {transaksi.detail_barang.length > 1 && 
-                                          <span className="text-xs text-gray-500">+{transaksi.detail_barang.length - 1} lainnya</span>
-                                        }
-                                      </div>
-                                    );
-                                  }
-                                  // Fallback untuk format lama
-                                  else if (transaksi.items && transaksi.items.length > 0) {
-                                    const firstItem = transaksi.items[0];
-                                    const namaBarang = firstItem.nama_barang || firstItem.sparepart?.nama_barang || 'Barang tidak diketahui';
-                                    return (
-                                      <div>
-                                        <span className="font-medium block truncate max-w-[120px]" title={namaBarang}>
-                                          {namaBarang}
-                                        </span>
-                                        {transaksi.items.length > 1 && 
-                                          <span className="text-xs text-gray-500">+{transaksi.items.length - 1} lainnya</span>
-                                        }
-                                      </div>
-                                    );
-                                  }
-                                  else {
-                                    return <span className="text-gray-400">Tidak ada item</span>;
-                                  }
-                                })()}
-                              </td>
-                              <td className="py-2 px-2 text-center">
-                                <span className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded ${
-                                  transaksi.tipe === 'masuk' 
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : transaksi.tipe === 'keluar'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-orange-100 text-orange-800'
-                                }`}>
-                                  {transaksi.tipe === 'masuk' ? 'Masuk' : transaksi.tipe === 'keluar' ? 'Keluar' : 'Kredit'}
-                                </span>
-                              </td>
-                              <td className="py-2 px-3 text-right text-xs font-bold text-gray-800">
-                                Rp {(transaksi.harga_total || 0).toLocaleString()}
-                              </td>
-                              <td className="py-2 px-2 text-center">
-                                <span className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded ${
+                    <>
+                      {/* Mobile Card Layout */}
+                      <div className="block sm:hidden space-y-3">
+                        {transaksiHariIni.map((transaksi, index) => (
+                          <div key={transaksi.id_transaksi || index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-medium text-gray-600">
+                                    {new Date(transaksi.tanggal).toLocaleTimeString('id-ID', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                  <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                                    transaksi.tipe === 'masuk' 
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : transaksi.tipe === 'keluar'
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-orange-100 text-orange-800'
+                                  }`}>
+                                    {transaksi.tipe === 'masuk' ? 'Masuk' : transaksi.tipe === 'keluar' ? 'Keluar' : 'Kredit'}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {(() => {
+                                    if (transaksi.detail_barang && transaksi.detail_barang.length > 0) {
+                                      const firstItem = transaksi.detail_barang[0];
+                                      const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === firstItem.id_sparepart);
+                                      const namaBarang = firstItem.nama_barang || sparepartInfo?.nama_barang || `Item ${firstItem.id_sparepart || ''}`.trim();
+                                      return namaBarang + (transaksi.detail_barang.length > 1 ? ` +${transaksi.detail_barang.length - 1}` : '');
+                                    }
+                                    else if (transaksi.items && transaksi.items.length > 0) {
+                                      const firstItem = transaksi.items[0];
+                                      const namaBarang = firstItem.nama_barang || firstItem.sparepart?.nama_barang || 'Barang tidak diketahui';
+                                      return namaBarang + (transaksi.items.length > 1 ? ` +${transaksi.items.length - 1}` : '');
+                                    }
+                                    return 'Tidak ada item';
+                                  })()}
+                                </p>
+                              </div>
+                              <div className="text-right ml-2">
+                                <p className="text-sm font-bold text-gray-900">
+                                  Rp {(transaksi.harga_total || 0).toLocaleString()}
+                                </p>
+                                <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full mt-1 ${
                                   transaksi.tipe_pembayaran === 'kredit'
                                     ? 'bg-yellow-100 text-yellow-800'
                                     : 'bg-green-100 text-green-800'
                                 }`}>
                                   {transaksi.tipe_pembayaran === 'kredit' ? 'Kredit' : 'Lunas'}
                                 </span>
-                              </td>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Desktop Table Layout */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-3 text-sm font-medium text-gray-600">Waktu</th>
+                              <th className="text-left py-3 text-sm font-medium text-gray-600">Item</th>
+                              <th className="text-left py-3 text-sm font-medium text-gray-600">Tipe</th>
+                              <th className="text-right py-3 text-sm font-medium text-gray-600">Total</th>
+                              <th className="text-center py-3 text-sm font-medium text-gray-600">Status</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {transaksiHariIni.map((transaksi, index) => (
+                              <tr key={transaksi.id_transaksi || index} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="py-3 text-sm text-gray-600">
+                                  {new Date(transaksi.tanggal).toLocaleTimeString('id-ID', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </td>
+                                <td className="py-3 text-sm text-gray-900 max-w-xs truncate">
+                                  {(() => {
+                                    if (transaksi.detail_barang && transaksi.detail_barang.length > 0) {
+                                      const firstItem = transaksi.detail_barang[0];
+                                      const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === firstItem.id_sparepart);
+                                      const namaBarang = firstItem.nama_barang || sparepartInfo?.nama_barang || `Item ${firstItem.id_sparepart || ''}`.trim();
+                                      return namaBarang + (transaksi.detail_barang.length > 1 ? ` +${transaksi.detail_barang.length - 1}` : '');
+                                    }
+                                    else if (transaksi.items && transaksi.items.length > 0) {
+                                      const firstItem = transaksi.items[0];
+                                      const namaBarang = firstItem.nama_barang || firstItem.sparepart?.nama_barang || 'Barang tidak diketahui';
+                                      return namaBarang + (transaksi.items.length > 1 ? ` +${transaksi.items.length - 1}` : '');
+                                    }
+                                    return 'Tidak ada item';
+                                  })()}
+                                </td>
+                                <td className="py-3">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                    transaksi.tipe === 'masuk' 
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : transaksi.tipe === 'keluar'
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-orange-100 text-orange-800'
+                                  }`}>
+                                    {transaksi.tipe === 'masuk' ? 'Masuk' : transaksi.tipe === 'keluar' ? 'Keluar' : 'Kredit'}
+                                  </span>
+                                </td>
+                                <td className="py-3 text-sm font-medium text-gray-900 text-right">
+                                  Rp {(transaksi.harga_total || 0).toLocaleString()}
+                                </td>
+                                <td className="py-3 text-center">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                    transaksi.tipe_pembayaran === 'kredit'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-green-100 text-green-800'
+                                  }`}>
+                                    {transaksi.tipe_pembayaran === 'kredit' ? 'Kredit' : 'Lunas'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-gray-100 mt-6">
+                <div className="flex justify-end pt-4 border-t border-gray-100 mt-4 sm:mt-6">
                   <button
                     onClick={() => setShowTransaksiHariIni(false)}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-6 rounded-lg font-medium transition-colors"
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 sm:px-6 rounded-lg font-medium transition-colors touch-manipulation min-h-[44px]"
                   >
                     Tutup
                   </button>
