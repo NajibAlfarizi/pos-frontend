@@ -26,7 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { getAllSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
-import { FileText, BarChart3, Calendar, Search, Printer, X } from "lucide-react";
+import { FileText, BarChart3, Calendar, Search, Printer, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 
 interface Transaksi {
@@ -443,62 +443,80 @@ export default function TransaksiPage() {
   }, [search, filterTipe, filterPembayaran, filterStatus, dateRange, transaksiList]);
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
+    <div className="space-y-4 p-3 md:p-6 pb-28 md:pb-6">
+      {/* Header - Mobile Optimized */}
       <Card>
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-t-lg">
-          <div className="flex justify-between items-center">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-t-lg p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <div className="flex items-center gap-2">
-              <FileText size={24} className="text-blue-600" />
+              <FileText size={20} className="text-white flex-shrink-0" />
               <div>
-                <p className="text-blue-100 mt-2 text-lg">
+                <CardTitle className="text-lg md:text-xl font-bold text-white">
+                  Data Transaksi
+                </CardTitle>
+                <p className="text-blue-100 text-sm md:text-base">
                   {new Date().toLocaleDateString('id-ID', { 
                     weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
                   })}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2 items-center">
-              {/* Export Dropdown */}
-              <div className="relative">
-                <Button variant="outline" className="bg-white text-black font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100 flex gap-2 items-center" onClick={() => setShowExport(!showExport)}>
-                  <FileText size={16} /> Export
-                </Button>
-                {showExport && (
-                  <div className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-30">
-                    <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("csv"); }}>Export CSV</button>
-                    <button className="w-full text-left px-4 py-2 hover:bg-blue-50" onClick={() => { setShowExport(false); handleExport("excel"); }}>Export Excel</button>
-                  </div>
-                )}
-              </div>
+            
+            {/* Export Button - Mobile Friendly */}
+            <div className="relative">
+              <Button 
+                variant="outline" 
+                className="bg-white text-blue-800 font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100 flex gap-2 items-center w-full sm:w-auto" 
+                onClick={() => setShowExport(!showExport)}
+              >
+                <FileText size={16} /> Export
+              </Button>
+              {showExport && (
+                <div className="absolute right-0 mt-2 w-36 bg-white border rounded shadow z-30">
+                  <button 
+                    className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm" 
+                    onClick={() => { setShowExport(false); handleExport("csv"); }}
+                  >
+                    Export CSV
+                  </button>
+                  <button 
+                    className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm" 
+                    onClick={() => { setShowExport(false); handleExport("excel"); }}
+                  >
+                    Export Excel
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className="p-6">
-          {/* Filter Section */}
-          <div className="mb-6 space-y-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-64">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Cari berdasarkan keterangan atau ID transaksi..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+        <CardContent className="p-4 md:p-6">
+          {/* Filter Section - Mobile Responsive */}
+          <div className="mb-4 space-y-3">
+            {/* Search - Full width on mobile */}
+            <div className="w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Cari berdasarkan keterangan atau ID transaksi..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-              
+            </div>
+            
+            {/* Filters - Grid layout for mobile */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
                 <Select value={filterTipe} onValueChange={setFilterTipe}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Semua" />
                   </SelectTrigger>
                   <SelectContent>
@@ -510,9 +528,9 @@ export default function TransaksiPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pembayaran</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bayar</label>
                 <Select value={filterPembayaran} onValueChange={setFilterPembayaran}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Semua" />
                   </SelectTrigger>
                   <SelectContent>
@@ -526,7 +544,7 @@ export default function TransaksiPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-36">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Semua" />
                   </SelectTrigger>
                   <SelectContent>
@@ -537,23 +555,26 @@ export default function TransaksiPage() {
                 </Select>
               </div>
 
-              <Button variant="outline" onClick={resetFilters}>
-                Reset Filter
-              </Button>
+              <div className="col-span-2 md:col-span-1 lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reset</label>
+                <Button variant="outline" onClick={resetFilters} className="w-full">
+                  Reset Filter
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Stats - Mobile Responsive Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <BarChart3 size={20} className="text-blue-600" />
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                    <BarChart3 size={16} className="text-blue-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Transaksi Hari Ini</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-600 truncate">Transaksi Hari Ini</p>
+                    <p className="text-lg md:text-xl font-bold text-blue-600">
                       {(() => {
                         const today = new Date().toDateString();
                         return filteredTransaksi.filter(t => 
@@ -567,20 +588,20 @@ export default function TransaksiPage() {
             </Card>
             
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <FileText size={20} className="text-green-600" />
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
+                    <FileText size={16} className="text-green-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Pemasukan Hari Ini</p>
-                    <p className="text-2xl font-bold text-green-600">
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-600 truncate">Pemasukan Hari Ini</p>
+                    <p className="text-lg md:text-xl font-bold text-green-600 truncate">
                       Rp {(() => {
                         const today = new Date().toDateString();
-                        return filteredTransaksi
+                        const total = filteredTransaksi
                           .filter(t => t.tipe === "keluar" && new Date(t.tanggal).toDateString() === today)
-                          .reduce((sum, t) => sum + t.harga_total, 0)
-                          .toLocaleString();
+                          .reduce((sum, t) => sum + t.harga_total, 0);
+                        return total > 1000000 ? (total/1000000).toFixed(1) + 'M' : total.toLocaleString();
                       })()}
                     </p>
                   </div>
@@ -589,14 +610,14 @@ export default function TransaksiPage() {
             </Card>
             
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Calendar size={20} className="text-orange-600" />
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
+                    <Calendar size={16} className="text-orange-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Barang Masuk Hari Ini</p>
-                    <p className="text-2xl font-bold text-orange-600">
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-600 truncate">Barang Masuk</p>
+                    <p className="text-lg md:text-xl font-bold text-orange-600">
                       {(() => {
                         const today = new Date().toDateString();
                         return filteredTransaksi
@@ -610,14 +631,14 @@ export default function TransaksiPage() {
             </Card>
 
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Calendar size={20} className="text-purple-600" />
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                    <Calendar size={16} className="text-purple-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Barang Keluar Hari Ini</p>
-                    <p className="text-2xl font-bold text-purple-600">
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-600 truncate">Barang Keluar</p>
+                    <p className="text-lg md:text-xl font-bold text-purple-600">
                       {(() => {
                         const today = new Date().toDateString();
                         return filteredTransaksi
@@ -631,8 +652,172 @@ export default function TransaksiPage() {
             </Card>
           </div>
 
-          {/* Table */}
-          <div className="border rounded-lg overflow-hidden">
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {currentData.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-gray-500">
+                  <FileText size={48} className="mx-auto mb-3 text-gray-300" />
+                  <p className="text-lg font-medium">Tidak ada data transaksi</p>
+                  <p className="text-sm">Belum ada transaksi untuk ditampilkan</p>
+                </CardContent>
+              </Card>
+            ) : (
+              currentData.map((trx, idx) => (
+                <Card key={trx.id_transaksi} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          #{(page - 1) * limit + idx + 1}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          trx.tipe === "masuk" 
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-red-100 text-red-700"
+                        }`}>
+                          {trx.tipe?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">
+                          {(() => {
+                            const d = new Date(trx.tanggal);
+                            return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+                          })()}
+                        </p>
+                        <p className="text-sm font-semibold">
+                          {trx.tipe === "masuk" ? "Rp 0" : `Rp ${trx.harga_total.toLocaleString()}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Item Details */}
+                    <div className="mb-3">
+                      {(() => {
+                        if (trx.detail_barang && trx.detail_barang.length > 0) {
+                          const firstItem = trx.detail_barang[0];
+                          const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === firstItem.id_sparepart);
+                          const namaBarang = firstItem.nama_barang || sparepartInfo?.nama_barang || `Item 1`;
+                          
+                          return (
+                            <div className="space-y-2">
+                              <div className="bg-gray-50 p-2 rounded">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium text-sm">{namaBarang}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {firstItem.jumlah}x @ Rp {firstItem.harga_satuan?.toLocaleString() || '0'}
+                                      {firstItem.eceran && <span className="text-orange-600 ml-1">(E)</span>}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {trx.detail_barang.length > 1 && (
+                                <p className="text-xs text-blue-600 font-medium">
+                                  +{trx.detail_barang.length - 1} item lainnya
+                                </p>
+                              )}
+                            </div>
+                          );
+                        } else if (trx.id_sparepart) {
+                          const sparepartInfo = sparepartList.find(sp => sp.id_sparepart === trx.id_sparepart);
+                          const namaBarang = sparepartInfo?.nama_barang || 'Barang Tidak Ditemukan';
+                          
+                          return (
+                            <div className="bg-gray-50 p-2 rounded">
+                              <p className="font-medium text-sm">{namaBarang}</p>
+                              <p className="text-xs text-gray-500">
+                                {trx.jumlah}x @ Rp {(trx.harga_total / trx.jumlah).toLocaleString()}
+                              </p>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="bg-gray-50 p-2 rounded">
+                              <p className="font-medium text-sm text-gray-400">
+                                {trx.keterangan || 'Transaksi tanpa detail barang'}
+                              </p>
+                              <p className="text-xs text-gray-500">Data tidak tersedia</p>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+
+                    {/* Payment Info */}
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Pembayaran</p>
+                        <p className="text-sm font-medium">
+                          {trx.tipe_pembayaran ? 
+                            trx.tipe_pembayaran.charAt(0).toUpperCase() + trx.tipe_pembayaran.slice(1) 
+                            : '-'
+                          }
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Status</p>
+                        {trx.tipe_pembayaran === 'cash' ? (
+                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                            Lunas
+                          </span>
+                        ) : trx.tipe_pembayaran === 'kredit' ? (
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            trx.status_pembayaran === 'lunas' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {trx.status_pembayaran ? 
+                              trx.status_pembayaran.charAt(0).toUpperCase() + trx.status_pembayaran.slice(1) 
+                              : '-'
+                            }
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs"
+                        onClick={() => handleDetail(trx)}
+                      >
+                        Detail
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs"
+                        onClick={() => handleEdit(trx)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex-1 text-xs"
+                        onClick={() => {
+                          setDeleteId(trx.id_transaksi);
+                          setShowDeleteConfirm(true);
+                        }}
+                      >
+                        Hapus
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
@@ -806,20 +991,22 @@ export default function TransaksiPage() {
 
           {/* Pagination */}
           {totalData > 0 && (
-            <div className="flex justify-between items-center mt-4">
-              <p className="text-sm text-gray-600">
+            <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-3 md:gap-0">
+              <p className="text-xs md:text-sm text-gray-600 order-2 md:order-1">
                 Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, totalData)} dari {totalData} data
               </p>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 order-1 md:order-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
+                  className="text-xs px-3 py-2"
                 >
-                  Sebelumnya
+                  <ChevronLeft size={14} className="md:hidden" />
+                  <span className="hidden md:inline">Sebelumnya</span>
                 </Button>
-                <span className="px-3 py-2 text-sm">
+                <span className="px-3 py-2 text-sm bg-gray-100 rounded border min-w-[80px] text-center">
                   {page} / {totalPages}
                 </span>
                 <Button
@@ -827,8 +1014,10 @@ export default function TransaksiPage() {
                   size="sm"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
+                  className="text-xs px-3 py-2"
                 >
-                  Selanjutnya
+                  <ChevronRight size={14} className="md:hidden" />
+                  <span className="hidden md:inline">Selanjutnya</span>
                 </Button>
               </div>
             </div>
@@ -838,7 +1027,7 @@ export default function TransaksiPage() {
 
       {/* Modal Edit Transaksi */}
       <Dialog open={openEditForm} onOpenChange={setOpenEditForm}>
-        <DialogContent className="sm:max-w-2xl rounded-2xl shadow-xl">
+        <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl">
           <DialogHeader className="border-b pb-3">
             <DialogTitle className="text-lg font-semibold text-gray-800">
               Edit Transaksi
@@ -848,7 +1037,7 @@ export default function TransaksiPage() {
             <div className="space-y-4 py-4">
               {/* Info Read-only */}
               <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 text-sm">
                   <div>
                     <span className="font-medium text-gray-700">ID:</span>
                     <span className="ml-2 text-gray-600">{selectedTransaksi.id_transaksi.slice(0, 8)}...</span>
@@ -861,19 +1050,20 @@ export default function TransaksiPage() {
               </div>
 
               {/* Form Edit */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1 text-sm font-medium text-gray-700">Tanggal</label>
                   <Input
                     type="date"
                     value={editForm.tanggal}
                     onChange={(e) => setEditForm(prev => ({ ...prev, tanggal: e.target.value }))}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block mb-1 text-sm font-medium text-gray-700">Tipe</label>
                   <Select value={editForm.tipe} onValueChange={(val) => setEditForm(prev => ({ ...prev, tipe: val }))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih Tipe" />
                     </SelectTrigger>
                     <SelectContent>
@@ -884,7 +1074,7 @@ export default function TransaksiPage() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1 text-sm font-medium text-gray-700">Jumlah</label>
                   <Input
@@ -967,7 +1157,7 @@ export default function TransaksiPage() {
 
       {/* Modal Detail Transaksi */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-        <DialogContent className="sm:max-w-2xl rounded-2xl shadow-xl">
+        <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl">
           <DialogHeader className="border-b pb-3">
             <DialogTitle className="text-lg font-semibold text-gray-800">
               Detail Transaksi
@@ -1122,12 +1312,12 @@ export default function TransaksiPage() {
 
       {/* Modal Konfirmasi Hapus */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[90vw]">
           <DialogHeader>
             <DialogTitle>Konfirmasi Hapus</DialogTitle>
           </DialogHeader>
           <p className="text-gray-600">Apakah Anda yakin ingin menghapus transaksi ini?</p>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col md:flex-row gap-3 mt-4">
             <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
               Batal
             </Button>

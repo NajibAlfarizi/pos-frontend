@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, User, MapPin, Calendar, TrendingUp } from "lucide-react";
+import { LogOut, User, MapPin, Calendar, TrendingUp } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -127,15 +127,16 @@ export default function Navbar() {
     >
       {/* Baris Pertama: Logo Besar & Profile */}
       <div className="flex items-center justify-between">
-        {/* Kiri: Logo Besar */}
+        {/* Kiri: Logo Besar - Menghilangkan hamburger menu */}
         <div className="flex items-center gap-3">
-          <button className="sm:hidden p-2 rounded-lg hover:bg-white/20 transition-all" onClick={() => setOpen(!open)}>
-            <Menu className="w-6 h-6 text-white" />
-          </button>
+          {/* Hamburger menu dihilangkan di mobile karena sudah ada BottomNavbar */}
           <div className="flex flex-col">
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight drop-shadow-lg">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight drop-shadow-lg">
               ChiCha Mobile
             </h1>
+            <div className="text-xs text-white/80 font-medium hidden sm:block">
+              Point of Sale System
+            </div>
           </div>
         </div>
 
