@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, Users, BarChart } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, BarChart, RotateCcw } from "lucide-react";
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Kasir", href: "/kasir", icon: ShoppingCart },
   { name: "Transaksi", href: "/transaksi", icon: Package },
+  { name: "Retur", href: "/retur", icon: RotateCcw },
   { name: "Sparepart", href: "/sparepart", icon: Package },
   { name: "Merek", href: "/merek", icon: Users },
   { name: "Kategori Barang", href: "/kategori-barang", icon: BarChart },
