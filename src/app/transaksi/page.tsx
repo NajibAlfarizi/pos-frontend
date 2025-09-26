@@ -401,8 +401,25 @@ export default function TransaksiPage() {
         return;
       }
       
-      await cetakStrukTransaksi(token, id);
-      toast.success("Struk berhasil dicetak");
+      // Gunakan getStrukHTML untuk mendapatkan HTML struk
+      const strukHTML = await getStrukHTML(token, id);
+      
+      // Buat window baru untuk cetak
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(strukHTML);
+        printWindow.document.close();
+        
+        // Tunggu content load lalu trigger print
+        printWindow.onload = () => {
+          printWindow.print();
+          printWindow.close();
+        };
+        
+        toast.success("Struk berhasil dicetak");
+      } else {
+        toast.error("Gagal membuka window cetak");
+      }
     } catch (error) {
       console.error("Gagal cetak struk:", error);
       toast.error("Gagal cetak struk");
@@ -1299,10 +1316,21 @@ export default function TransaksiPage() {
                 </div>
               </div>
 
-              {/* Tombol Close */}
-              <div className="flex justify-end pt-4">
-                <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
+              {/* Tombol Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 sm:flex-none order-2 sm:order-1" 
+                  onClick={() => setOpenDetailModal(false)}
+                >
                   Tutup
+                </Button>
+                <Button 
+                  className="flex-1 sm:flex-none order-1 sm:order-2 bg-blue-600 hover:bg-blue-700 flex items-center gap-2" 
+                  onClick={() => handleCetakStruk(detailTransaksi.id_transaksi)}
+                >
+                  <Printer size={16} />
+                  Cetak Struk
                 </Button>
               </div>
             </div>
