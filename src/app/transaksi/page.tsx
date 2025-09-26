@@ -28,6 +28,9 @@ import { getAllSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
 import { FileText, BarChart3, Calendar, Search, Printer, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
+import PrintButton from "@/components/PrintButton";
+import TestPrintButton from "@/components/TestPrintButton";
+import PrinterStatusIndicator from "@/components/PrinterStatusIndicator";
 
 interface Transaksi {
   id_transaksi: string;
@@ -482,31 +485,38 @@ export default function TransaksiPage() {
               </div>
             </div>
             
-            {/* Export Button - Mobile Friendly */}
-            <div className="relative">
-              <Button 
-                variant="outline" 
-                className="bg-white text-blue-800 font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100 flex gap-2 items-center w-full sm:w-auto" 
-                onClick={() => setShowExport(!showExport)}
-              >
-                <FileText size={16} /> Export
-              </Button>
-              {showExport && (
-                <div className="absolute right-0 mt-2 w-36 bg-white border rounded shadow z-30">
-                  <button 
-                    className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm" 
-                    onClick={() => { setShowExport(false); handleExport("csv"); }}
-                  >
-                    Export CSV
-                  </button>
-                  <button 
-                    className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm" 
-                    onClick={() => { setShowExport(false); handleExport("excel"); }}
-                  >
-                    Export Excel
-                  </button>
-                </div>
-              )}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              {/* Printer Status Indicator */}
+              <div className="bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm">
+                <PrinterStatusIndicator showRefresh={false} />
+              </div>
+              
+              {/* Export Button - Mobile Friendly */}
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  className="bg-white text-blue-800 font-semibold px-4 py-2 rounded shadow border border-gray-200 hover:bg-gray-100 flex gap-2 items-center w-full sm:w-auto" 
+                  onClick={() => setShowExport(!showExport)}
+                >
+                  <FileText size={16} /> Export
+                </Button>
+                {showExport && (
+                  <div className="absolute right-0 mt-2 w-36 bg-white border rounded shadow z-30">
+                    <button 
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm" 
+                      onClick={() => { setShowExport(false); handleExport("csv"); }}
+                    >
+                      Export CSV
+                    </button>
+                    <button 
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm" 
+                      onClick={() => { setShowExport(false); handleExport("excel"); }}
+                    >
+                      Export Excel
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -815,6 +825,11 @@ export default function TransaksiPage() {
                       >
                         Edit
                       </Button>
+                      <PrintButton 
+                        transaksi={trx} 
+                        variant="small"
+                        className="flex-1 text-xs"
+                      />
                       <Button
                         size="sm"
                         variant="destructive"
@@ -986,6 +1001,11 @@ export default function TransaksiPage() {
                           >
                             Edit
                           </Button>
+                          <PrintButton 
+                            transaksi={trx} 
+                            variant="small"
+                            className="text-[10px] px-1 py-0.5 h-6"
+                          />
                           <Button
                             size="sm"
                             variant="destructive"
@@ -1316,21 +1336,40 @@ export default function TransaksiPage() {
                 </div>
               </div>
 
+              {/* Printer Status */}
+              <div className="border-t pt-4">
+                <PrinterStatusIndicator showRefresh={true} />
+              </div>
+
               {/* Tombol Actions */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <div className="flex gap-2 order-1 sm:order-2">
+                  {/* Test Print Button */}
+                  <TestPrintButton className="flex-1 sm:flex-none" />
+                  
+                  {/* Bluetooth Print Button */}
+                  <PrintButton 
+                    transaksi={detailTransaksi} 
+                    variant="default"
+                    className="flex-1 sm:flex-none"
+                  />
+                  
+                  {/* HTML Print Button (existing) */}
+                  <button 
+                    className="flex-1 sm:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors duration-200" 
+                    onClick={() => handleCetakStruk(detailTransaksi.id_transaksi)}
+                  >
+                    <Printer size={16} />
+                    Cetak HTML
+                  </button>
+                </div>
+                
                 <Button 
                   variant="outline" 
                   className="flex-1 sm:flex-none order-2 sm:order-1" 
                   onClick={() => setOpenDetailModal(false)}
                 >
                   Tutup
-                </Button>
-                <Button 
-                  className="flex-1 sm:flex-none order-1 sm:order-2 bg-blue-600 hover:bg-blue-700 flex items-center gap-2" 
-                  onClick={() => handleCetakStruk(detailTransaksi.id_transaksi)}
-                >
-                  <Printer size={16} />
-                  Cetak Struk
                 </Button>
               </div>
             </div>
