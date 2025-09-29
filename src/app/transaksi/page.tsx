@@ -73,6 +73,8 @@ export default function TransaksiPage() {
   const [limit] = useState(10); // Kembali ke 10 agar pagination muncul
   const [totalPages, setTotalPages] = useState(1);
   const [totalData, setTotalData] = useState(0);
+  // Untuk menjaga page setelah update
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
 
   // Filter
   const [filterTipe, setFilterTipe] = useState("all");
@@ -205,7 +207,7 @@ export default function TransaksiPage() {
   };
 
   // Filter transaksi
-  const applyFilters = () => {
+  const applyFilters = (keepPage = false) => {
     let filtered = [...transaksiList];
 
     // Filter berdasarkan pencarian
@@ -243,7 +245,7 @@ export default function TransaksiPage() {
     setFilteredTransaksi(filtered);
     setTotalData(filtered.length);
     setTotalPages(Math.ceil(filtered.length / limit));
-    setPage(1);
+    if (!keepPage && !pendingPage) setPage(1);
   };
 
   // Handle edit
@@ -309,9 +311,9 @@ export default function TransaksiPage() {
       toast.success("Transaksi berhasil diupdate");
       setOpenEditForm(false);
 
-      // Setelah update, reload data lalu setPage ke halaman transaksi yang diedit
+      // Setelah update, reload data lalu set pendingPage
+      setPendingPage(pageOfEdited);
       await loadData();
-      setPage(pageOfEdited);
     } catch (error) {
       console.error("Gagal update transaksi:", error);
       toast.error("Gagal update transaksi");
@@ -462,7 +464,14 @@ export default function TransaksiPage() {
   }, []);
 
   useEffect(() => {
-    applyFilters();
+    // Jika ada pendingPage (misal setelah update), setPage ke pendingPage setelah data/filter selesai
+    if (pendingPage) {
+      applyFilters(true);
+      setPage(pendingPage);
+      setPendingPage(null);
+    } else {
+      applyFilters();
+    }
   }, [search, filterTipe, filterPembayaran, filterStatus, dateRange, transaksiList]);
 
   return (
