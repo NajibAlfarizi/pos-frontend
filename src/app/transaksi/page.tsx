@@ -848,12 +848,13 @@ export default function TransaksiPage() {
                 <TableRow className="bg-gray-50">
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-8">No</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Tanggal</TableHead>
-                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-32">Barang</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-36 max-w-[9rem]">Barang</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-10">Jml</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Total</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Tipe</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-16">Pembayaran</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-12">Status</TableHead>
+                  <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-32 max-w-[8rem]">Keterangan</TableHead>
                   <TableHead className="px-2 py-1 text-center font-semibold text-gray-700 w-20">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -975,6 +976,11 @@ export default function TransaksiPage() {
                         ) : (
                           <span className="text-yellow-400">-</span>
                         )}
+                      </TableCell>
+                      <TableCell className="px-1 py-1 text-left w-32 max-w-[8rem]">
+                        <span className="truncate block" title={trx.keterangan || '-'}>
+                          {trx.keterangan && trx.keterangan.length > 40 ? trx.keterangan.slice(0, 40) + '…' : (trx.keterangan || '-')}
+                        </span>
                       </TableCell>
                       <TableCell className="px-1 py-1 text-center w-20">
                         <div className="flex gap-1 justify-center">
