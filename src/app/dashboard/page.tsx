@@ -55,7 +55,8 @@ const AnimatedNumber: React.FC<{ value: number; duration?: number; prefix?: stri
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [value, duration, displayValue]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, duration]);
 
   // Setup periodic rolling animation every 5 seconds
   useEffect(() => {
