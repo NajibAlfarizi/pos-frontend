@@ -27,10 +27,6 @@ import { toast } from "sonner";
 import { getAllSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
 import { FileText, BarChart3, Calendar, Search, Printer, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { DatePicker } from "@/components/ui/DatePicker";
-import PrintButton from "@/components/PrintButton";
-import TestPrintButton from "@/components/TestPrintButton";
-import PrinterStatusIndicator from "@/components/PrinterStatusIndicator";
 
 interface Transaksi {
   id_transaksi: string;
@@ -289,26 +285,33 @@ export default function TransaksiPage() {
 
     try {
       setLoading(true);
-      
+
       // Ambil token dari localStorage
       const userStr = localStorage.getItem("user");
       if (!userStr) {
         router.push("/login");
         return;
       }
-      
+
       const user = JSON.parse(userStr);
       const token = user.access_token;
-      
+
       if (!token) {
         router.push("/login");
         return;
       }
-      
+
+      // Cari index transaksi yang diedit pada filteredTransaksi sebelum update
+      const idx = filteredTransaksi.findIndex(trx => trx.id_transaksi === selectedTransaksi.id_transaksi);
+      const pageOfEdited = idx !== -1 ? Math.floor(idx / limit) + 1 : 1;
+
       await updateTransaksi(token, selectedTransaksi.id_transaksi, editForm);
       toast.success("Transaksi berhasil diupdate");
       setOpenEditForm(false);
-      loadData();
+
+      // Setelah update, reload data lalu setPage ke halaman transaksi yang diedit
+      await loadData();
+      setPage(pageOfEdited);
     } catch (error) {
       console.error("Gagal update transaksi:", error);
       toast.error("Gagal update transaksi");
@@ -486,11 +489,6 @@ export default function TransaksiPage() {
             </div>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              {/* Printer Status Indicator */}
-              <div className="bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm">
-                <PrinterStatusIndicator showRefresh={false} />
-              </div>
-              
               {/* Export Button - Mobile Friendly */}
               <div className="relative">
                 <Button 
@@ -628,7 +626,7 @@ export default function TransaksiPage() {
                         const total = filteredTransaksi
                           .filter(t => t.tipe === "keluar" && new Date(t.tanggal).toDateString() === today)
                           .reduce((sum, t) => sum + t.harga_total, 0);
-                        return total > 1000000 ? (total/1000000).toFixed(1) + 'M' : total.toLocaleString();
+                        return total.toLocaleString();
                       })()}
                     </p>
                   </div>
@@ -825,11 +823,6 @@ export default function TransaksiPage() {
                       >
                         Edit
                       </Button>
-                      <PrintButton 
-                        transaksi={trx} 
-                        variant="small"
-                        className="flex-1 text-xs"
-                      />
                       <Button
                         size="sm"
                         variant="destructive"
@@ -1001,11 +994,6 @@ export default function TransaksiPage() {
                           >
                             Edit
                           </Button>
-                          <PrintButton 
-                            transaksi={trx} 
-                            variant="small"
-                            className="text-[10px] px-1 py-0.5 h-6"
-                          />
                           <Button
                             size="sm"
                             variant="destructive"
@@ -1335,32 +1323,16 @@ export default function TransaksiPage() {
                   )}
                 </div>
               </div>
-
-              {/* Printer Status */}
-              <div className="border-t pt-4">
-                <PrinterStatusIndicator showRefresh={true} />
-              </div>
-
               {/* Tombol Actions */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <div className="flex gap-2 order-1 sm:order-2">
-                  {/* Test Print Button */}
-                  <TestPrintButton className="flex-1 sm:flex-none" />
-                  
-                  {/* Bluetooth Print Button */}
-                  <PrintButton 
-                    transaksi={detailTransaksi} 
-                    variant="default"
-                    className="flex-1 sm:flex-none"
-                  />
-                  
                   {/* HTML Print Button (existing) */}
                   <button 
                     className="flex-1 sm:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors duration-200" 
                     onClick={() => handleCetakStruk(detailTransaksi.id_transaksi)}
                   >
                     <Printer size={16} />
-                    Cetak HTML
+                    Cetak Struk
                   </button>
                 </div>
                 
