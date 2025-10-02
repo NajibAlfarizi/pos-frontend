@@ -166,6 +166,10 @@ const DashboardPage: React.FC = () => {
   const [transaksiHariIni, setTransaksiHariIni] = useState<any[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingSparepart, setIsLoadingSparepart] = useState(true);
+  const [totalCashHariIni, setTotalCashHariIni] = useState<number>(0);
+  const [isLoadingCash, setIsLoadingCash] = useState(true);
+  const [totalKreditHariIni, setTotalKreditHariIni] = useState<number>(0);
+  const [isLoadingKredit, setIsLoadingKredit] = useState(true);
   const loadingContext = useGlobalLoading();
   const router = useRouter();
   const [clientDate, setClientDate] = useState<string>("");
@@ -213,6 +217,146 @@ const DashboardPage: React.FC = () => {
     
     fetchStatistik();
   }, [token, router, selectedDate]);
+
+  // Fetch data transaksi cash per hari
+  useEffect(() => {
+    if (!token || !selectedDate) return;
+    
+    const fetchCashTransaksi = async () => {
+      setIsLoadingCash(true);
+      try {
+        // Ambil semua transaksi tanpa filter ketat, kemudian filter manual
+        const data = await apiWithRefresh(
+          (t) => getTransaksi(t, { limit: 1000 }), // Ambil semua transaksi terbaru
+          token,
+          setToken,
+          () => {},
+          router
+        );
+        
+        let transaksiData = [];
+        if (Array.isArray(data)) {
+          transaksiData = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          transaksiData = data.data;
+        }
+        
+        if (transaksiData.length > 0) {
+          // Filter transaksi untuk hari yang dipilih
+          const todayTransaksi = transaksiData.filter((transaksi: any) => {
+            const transaksiDate = new Date(transaksi.tanggal);
+            const transaksiDateString = transaksiDate.toISOString().split('T')[0];
+            return transaksiDateString === selectedDate;
+          });
+          
+          // Hitung cash dari transaksi keluar yang pembayarannya cash
+          const cashTransaksi = todayTransaksi.filter((transaksi: any) => 
+            transaksi.tipe === 'keluar' && (
+              transaksi.tipe_pembayaran === 'cash' || 
+              transaksi.tipe_pembayaran === 'tunai' ||
+              transaksi.tipe_pembayaran === 'lunas' // kadang lunas juga bisa berarti cash
+            )
+          );
+          
+          const totalCash = cashTransaksi.reduce((total: number, transaksi: any) => 
+            total + (transaksi.harga_total || 0), 0
+          );
+          
+          // Hanya tampilkan transaksi cash saja, tidak fallback ke semua transaksi keluar
+          setTotalCashHariIni(totalCash);
+        } else {
+          setTotalCashHariIni(0);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching cash transactions:', error);
+        setTotalCashHariIni(0);
+      } finally {
+        setIsLoadingCash(false);
+      }
+    };
+    
+    fetchCashTransaksi();
+  }, [token, router, selectedDate]);
+
+  // Fallback useEffect untuk menggunakan data statistik khusus cash jika tersedia
+  useEffect(() => {
+    if (totalCashHariIni === 0 && statistik && !isLoadingCash) {
+      // Hanya gunakan data cash dari statistik, bukan total penjualan
+      const fallbackCash = statistik.total_cash || statistik.penjualan_cash || 0;
+      if (fallbackCash > 0) {
+        setTotalCashHariIni(fallbackCash);
+      }
+    }
+  }, [statistik, totalCashHariIni, isLoadingCash]);
+
+  // Fetch data transaksi kredit per hari
+  useEffect(() => {
+    if (!token || !selectedDate) return;
+    
+    const fetchKreditTransaksi = async () => {
+      setIsLoadingKredit(true);
+      try {
+        // Ambil semua transaksi tanpa filter ketat, kemudian filter manual
+        const data = await apiWithRefresh(
+          (t) => getTransaksi(t, { limit: 1000 }), // Ambil semua transaksi terbaru
+          token,
+          setToken,
+          () => {},
+          router
+        );
+        
+        let transaksiData = [];
+        if (Array.isArray(data)) {
+          transaksiData = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          transaksiData = data.data;
+        }
+        
+        if (transaksiData.length > 0) {
+          // Filter transaksi untuk hari yang dipilih
+          const todayTransaksi = transaksiData.filter((transaksi: any) => {
+            const transaksiDate = new Date(transaksi.tanggal);
+            const transaksiDateString = transaksiDate.toISOString().split('T')[0];
+            return transaksiDateString === selectedDate;
+          });
+          
+          // Hitung kredit dari transaksi keluar yang pembayarannya kredit
+          const kreditTransaksi = todayTransaksi.filter((transaksi: any) => 
+            transaksi.tipe === 'keluar' && transaksi.tipe_pembayaran === 'kredit'
+          );
+          
+          const totalKredit = kreditTransaksi.reduce((total: number, transaksi: any) => 
+            total + (transaksi.harga_total || 0), 0
+          );
+          
+          // Hanya tampilkan transaksi kredit saja
+          setTotalKreditHariIni(totalKredit);
+        } else {
+          setTotalKreditHariIni(0);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching kredit transactions:', error);
+        setTotalKreditHariIni(0);
+      } finally {
+        setIsLoadingKredit(false);
+      }
+    };
+    
+    fetchKreditTransaksi();
+  }, [token, router, selectedDate]);
+
+  // Fallback useEffect untuk menggunakan data statistik khusus kredit jika tersedia
+  useEffect(() => {
+    if (totalKreditHariIni === 0 && statistik && !isLoadingKredit) {
+      // Hanya gunakan data kredit dari statistik
+      const fallbackKredit = statistik.total_kredit || statistik.penjualan_kredit || 0;
+      if (fallbackKredit > 0) {
+        setTotalKreditHariIni(fallbackKredit);
+      }
+    }
+  }, [statistik, totalKreditHariIni, isLoadingKredit]);
 
   // Fetch data sparepart untuk total produk dan stok rendah
   useEffect(() => {
@@ -269,11 +413,9 @@ const DashboardPage: React.FC = () => {
         
         if (Array.isArray(data)) {
           // Ambil 5 transaksi terbaru (sudah diurutkan dari server)
-          console.log('Transaksi data structure:', data[0]); // Debug log
           setTransaksiTerbaru(data.slice(0, 5));
         } else if (data?.data && Array.isArray(data.data)) {
           // Jika response dibungkus dalam objek dengan property data
-          console.log('Transaksi data structure (wrapped):', data.data[0]); // Debug log
           setTransaksiTerbaru(data.data.slice(0, 5));
         }
       } catch (error) {
@@ -368,7 +510,8 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Statistik Kartu Utama - Mobile First */}
           <div className="xl:col-span-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            {/* Baris pertama - 3 cards utama */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
               {/* Penjualan Hari Ini */}
               {isLoadingStats ? (
                 <SkeletonCard />
@@ -393,7 +536,52 @@ const DashboardPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Total Kredit */}
+              {/* Total Cash Hari Ini */}
+              {isLoadingCash ? (
+                <SkeletonCard />
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all duration-300 group">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="bg-blue-100 p-2 sm:p-3 rounded-xl group-hover:bg-blue-200 transition-colors">
+                      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">Penjualan Cash</h3>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-800">
+                    <AnimatedNumber 
+                      value={totalCashHariIni} 
+                      prefix="Rp " 
+                      duration={1600}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Penjualan Kredit Hari Ini */}
+              {isLoadingKredit ? (
+                <SkeletonCard />
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all duration-300 group">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="bg-yellow-100 p-2 sm:p-3 rounded-xl group-hover:bg-yellow-200 transition-colors">
+                      <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">Penjualan Kredit</h3>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-800">
+                    <AnimatedNumber 
+                      value={totalKreditHariIni} 
+                      prefix="Rp " 
+                      duration={1700}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Baris kedua - 2 cards tambahan */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+              {/* Total Kredit (Semua) */}
               {isLoadingStats ? (
                 <SkeletonCard />
               ) : (
@@ -403,7 +591,7 @@ const DashboardPage: React.FC = () => {
                       <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
                     </div>
                   </div>
-                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">Total Kredit</h3>
+                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">Total Kredit (Semua)</h3>
                   <div className="text-lg sm:text-2xl font-bold text-gray-800">
                     <AnimatedNumber 
                       value={statistik?.total_kredit || 0} 
@@ -418,7 +606,7 @@ const DashboardPage: React.FC = () => {
               {isLoadingSparepart ? (
                 <SkeletonCard />
               ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all duration-300 group sm:col-span-2 md:col-span-1">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all duration-300 group">
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <div className="bg-purple-100 p-2 sm:p-3 rounded-xl group-hover:bg-purple-200 transition-colors">
                       <Package className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
