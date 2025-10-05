@@ -2,21 +2,51 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LayoutDashboard, Package, ShoppingCart, Users, BarChart, RotateCcw } from "lucide-react";
+import { getProfile } from "@/lib/api/authHelper";
 
-const menuItems = [
+const baseMenuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Kasir", href: "/kasir", icon: ShoppingCart },
   { name: "Transaksi", href: "/transaksi", icon: Package },
   { name: "Retur", href: "/retur", icon: RotateCcw },
   { name: "Sparepart", href: "/sparepart", icon: Package },
   { name: "Merek", href: "/merek", icon: Users },
-  { name: "Kategori Barang", href: "/kategori-barang", icon: BarChart },
+  { name: "Kategori Barang", href: "/kategori-barang", icon: BarChart }
+];
+
+const ownerOnlyItems = [
   { name: "Laporan", href: "/laporan", icon: BarChart }
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const user = getProfile();
+      setUserRole(user?.role || null);
+    } catch {
+      setUserRole(null);
+    }
+  }, []);
+
+  // Combine menu items based on user role
+  const getMenuItems = () => {
+    const menuItems = [...baseMenuItems];
+    
+    // Add laporan after dashboard if user is owner
+    if (userRole === 'owner') {
+      // Insert laporan after dashboard (at index 1)
+      menuItems.splice(1, 0, ...ownerOnlyItems);
+    }
+    
+    return menuItems;
+  };
+
+  const menuItems = getMenuItems();
 
   return (
     <aside

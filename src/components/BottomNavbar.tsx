@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Package, ShoppingCart, Users, BarChart, RotateCcw, Tag, MoreHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getProfile } from "@/lib/api/authHelper";
 
 // Menu utama yang selalu tampil
 const mainMenuItems = [
@@ -14,18 +15,46 @@ const mainMenuItems = [
   { name: "More", href: "#", icon: MoreHorizontal, color: "from-gray-500 to-slate-500", isMore: true },
 ];
 
-// Menu tambahan dalam dropdown
-const moreMenuItems = [
+// Menu tambahan dalam dropdown (base items)
+const baseMoreMenuItems = [
   { name: "Retur", href: "/retur", icon: RotateCcw, color: "from-red-500 to-pink-500" },
   { name: "Sparepart", href: "/sparepart", icon: Tag, color: "from-indigo-500 to-blue-500" },
   { name: "Merek", href: "/merek", icon: Users, color: "from-orange-500 to-amber-500" },
   { name: "Kategori", href: "/kategori-barang", icon: BarChart, color: "from-teal-500 to-green-500" },
+];
+
+// Owner only menu items
+const ownerMoreMenuItems = [
   { name: "Laporan", href: "/laporan", icon: BarChart, color: "from-rose-500 to-red-500" },
 ];
 
 export default function BottomNavbar() {
   const pathname = usePathname();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const user = getProfile();
+      setUserRole(user?.role || null);
+    } catch {
+      setUserRole(null);
+    }
+  }, []);
+
+  // Get more menu items based on user role
+  const getMoreMenuItems = () => {
+    let moreMenuItems = [...baseMoreMenuItems];
+    
+    // Add owner-only items if user is owner
+    if (userRole === 'owner') {
+      moreMenuItems = [...moreMenuItems, ...ownerMoreMenuItems];
+    }
+    
+    return moreMenuItems;
+  };
+
+  const moreMenuItems = getMoreMenuItems();
 
   // Check if any of the more menu items is active
   const isMoreMenuActive = moreMenuItems.some(item => {
