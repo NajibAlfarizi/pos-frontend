@@ -120,6 +120,12 @@ export default function LaporanPage() {
         () => {},
         router
       );
+      console.log('Dashboard Stats Response:', data);
+      console.log('Dashboard Stats Data:', data?.data);
+      if (data?.data?.bulanan) {
+        console.log('Bulanan data:', data.data.bulanan);
+        console.log('Kredit belum lunas list:', data.data.bulanan.kredit_belum_lunas_list);
+      }
       setDashboardStats(data?.data || null);
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -325,7 +331,7 @@ export default function LaporanPage() {
                 <p className="text-blue-100 text-lg">
                   Periode: {statistik_bulanan?.bulan || 'Bulan ini'} • 
                   <span className="ml-2 font-semibold">
-                    {(statistik_bulanan?.transaksi_lunas || 0) + (statistik_bulanan?.transaksi_kredit_belum_lunas || 0)} Total Transaksi
+                    {(statistik_bulanan?.transaksi_lunas || 0) + (bulanan?.transaksi_kredit_belum_lunas || 0)} Total Transaksi
                   </span>
                 </p>
               </div>
@@ -355,7 +361,7 @@ export default function LaporanPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-blue-100 text-sm font-medium">Kredit Belum Lunas</div>
-                    <div className="text-2xl font-bold text-yellow-300">{statistik_bulanan?.transaksi_kredit_belum_lunas || 0}</div>
+                    <div className="text-2xl font-bold text-yellow-300">{bulanan?.transaksi_kredit_belum_lunas || 0}</div>
                   </div>
                   <div className="bg-yellow-400/20 p-2 rounded-lg">
                     <Calendar className="h-6 w-6 text-yellow-300" />
@@ -479,11 +485,11 @@ export default function LaporanPage() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-rose-800">
-                  {statistik_bulanan?.formatted?.total_kredit_belum_lunas || formatRupiah(statistik_bulanan?.total_kredit_belum_lunas || 0)}
+                  {bulanan?.formatted?.kredit_belum_lunas || formatRupiah(bulanan?.kredit_belum_lunas || 0)}
                 </h3>
                 <div className="flex items-center gap-2">
                   <div className="bg-rose-100 text-rose-700 text-xs px-2 py-1 rounded-full font-medium">
-                    {statistik_bulanan?.transaksi_kredit_belum_lunas || 0} transaksi
+                    {bulanan?.transaksi_kredit_belum_lunas || 0} transaksi
                   </div>
                   <div className="bg-rose-200 text-rose-800 text-xs px-2 py-1 rounded-full font-medium animate-pulse">
                     Klik disini
@@ -597,7 +603,7 @@ export default function LaporanPage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-indigo-700 font-medium">Efisiensi Pembayaran</span>
                   <span className="text-lg font-bold text-indigo-800">
-                    {(((statistik_bulanan?.transaksi_lunas || 0) / ((statistik_bulanan?.transaksi_lunas || 0) + (statistik_bulanan?.transaksi_kredit_belum_lunas || 0)) * 100) || 0).toFixed(1)}%
+                    {(((statistik_bulanan?.transaksi_lunas || 0) / ((statistik_bulanan?.transaksi_lunas || 0) + (bulanan?.transaksi_kredit_belum_lunas || 0)) * 100) || 0).toFixed(1)}%
                   </span>
                 </div>
                 <div className="text-sm text-indigo-600">
@@ -621,7 +627,7 @@ export default function LaporanPage() {
                 className="w-full bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
               >
                 <Calendar className="h-4 w-4 mr-2" />
-                Lihat Kredit Belum Lunas ({statistik_bulanan?.transaksi_kredit_belum_lunas || 0})
+                Lihat Kredit Belum Lunas ({bulanan?.transaksi_kredit_belum_lunas || 0})
               </Button>
               
               <Button 
@@ -677,79 +683,34 @@ export default function LaporanPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {kreditBelumLunasList.map((trx: any, trxIdx: number) => {
-                        // Jika tidak ada detail_barang, tampilkan data dari properti utama transaksi
-                        const detailBarang = trx.detail_barang && trx.detail_barang.length > 0 ? trx.detail_barang : [trx];
-                        
-                        return detailBarang.map((item: any, itemIdx: number) => (
-                          <tr key={`${trx.id_transaksi}-${itemIdx}`} className="odd:bg-white even:bg-rose-50 hover:bg-rose-100 transition-colors">
-                            <td className="px-3 py-3 font-medium text-center">
-                              {itemIdx === 0 ? trxIdx + 1 : ''}
-                            </td>
-                            <td className="px-3 py-3 whitespace-nowrap">
-                              {itemIdx === 0 ? formatDate(trx.tanggal) : ''}
-                            </td>
-                            <td className="px-3 py-3">
-                              <div>
-                                <p className="font-medium text-gray-900">
-                                  {(() => {
-                                    // Prioritas utama: ambil nama dari data sparepart jika id_sparepart ada
-                                    const idSparepart = item.id_sparepart || trx.id_sparepart;
-                                    
-                                    // Jika ada id_sparepart, coba ambil nama dari data sparepart yang sudah di-join
-                                    if (idSparepart) {
-                                      const namaSparepart = item.sparepart?.nama_barang || 
-                                                           item.nama_sparepart || 
-                                                           trx.sparepart?.nama_barang || 
-                                                           trx.nama_sparepart;
-                                      
-                                      if (namaSparepart && namaSparepart.trim() !== '' && namaSparepart.trim() !== '-') {
-                                        return namaSparepart;
-                                      }
-                                    }
-                                    
-                                    // Fallback ke nama_barang biasa
-                                    const namaBarang = item.nama_barang || trx.nama_barang;
-                                    if (namaBarang && namaBarang.trim() !== '' && namaBarang.trim() !== '-') {
-                                      return namaBarang;
-                                    }
-                                    
-                                    // Fallback ke kode barang jika ada
-                                    const kodeBarang = item.kode_barang || trx.kode_barang || 
-                                                      item.sparepart?.kode_barang || 
-                                                      trx.sparepart?.kode_barang;
-                                    
-                                    if (kodeBarang && kodeBarang.trim() !== '' && kodeBarang.trim() !== '-') {
-                                      return `Kode: ${kodeBarang}`;
-                                    }
-                                    
-                                    // Jika masih tidak ada, tampilkan ID Sparepart
-                                    if (idSparepart) {
-                                      return `ID Sparepart: ${idSparepart.slice(-8)}`;
-                                    }
-                                    
-                                    // Fallback terakhir
-                                    return 'Nama barang tidak tersedia';
-                                  })()}
+                      {kreditBelumLunasList.map((trx: any, trxIdx: number) => (
+                        <tr key={trx.id_transaksi} className="odd:bg-white even:bg-rose-50 hover:bg-rose-100 transition-colors">
+                          <td className="px-3 py-3 font-medium text-center">
+                            {trxIdx + 1}
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            {formatDate(trx.tanggal)}
+                          </td>
+                          <td className="px-3 py-3">
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {trx.nama_barang || 'Nama barang tidak tersedia'}
+                              </p>
+                              {trx.id_transaksi && (
+                                <p className="text-xs text-gray-500">
+                                  ID Transaksi: {trx.id_transaksi.slice(-8)}
                                 </p>
-                                {(item.id_sparepart || trx.id_sparepart) && (
-                                  <p className="text-xs text-gray-500">
-                                    ID: {(item.id_sparepart || trx.id_sparepart)?.slice(-8)}
-                                  </p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-right font-bold text-rose-600">
-                              {item.formatted?.harga_total || 
-                               trx.formatted?.harga_total || 
-                               formatRupiah(item.harga_total || trx.harga_total || 0)}
-                            </td>
-                            <td className="px-3 py-3">
-                              {itemIdx === 0 ? (trx.keterangan || '-') : ''}
-                            </td>
-                          </tr>
-                        ));
-                      })}
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-right font-bold text-rose-600">
+                            {trx.formatted?.harga_total || formatRupiah(trx.harga_total || 0)}
+                          </td>
+                          <td className="px-3 py-3">
+                            {trx.keterangan || '-'}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
