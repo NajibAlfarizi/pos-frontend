@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { getAllSparepart } from "@/lib/api/sparepartHelper";
 import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
 import { FileText, BarChart3, Calendar, Search, Printer, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ThermalPrintButton } from "@/components/printer/ThermalPrintButton";
 
 interface Transaksi {
   id_transaksi: string;
@@ -1349,6 +1350,13 @@ export default function TransaksiPage() {
                     <Printer size={16} />
                     Cetak Struk
                   </button>
+                  
+                  {/* Thermal Print Button (new) */}
+                  <ThermalPrintButton
+                    idTransaksi={detailTransaksi.id_transaksi}
+                    variant="secondary"
+                    className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white"
+                  />
                 </div>
                 
                 <Button 

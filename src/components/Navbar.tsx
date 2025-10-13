@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { apiWithRefresh } from "@/lib/api/authHelper";
 import { getStatistikTransaksi } from "@/lib/api/transaksiHelper";
+import { PrinterStatus } from "@/components/printer/PrinterStatus";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -157,6 +158,9 @@ export default function Navbar() {
               </div>
             </div>
           </div>
+
+          {/* Printer Status */}
+          <PrinterStatus />
 
           {/* Profile Dropdown */}
           <div className="relative">

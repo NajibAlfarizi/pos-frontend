@@ -9,6 +9,7 @@ import { getAllKategoriBarang } from "@/lib/api/kategoriBarangHelper";
 import { getAllMerek } from "@/lib/api/merekHelper";
 import { addTransaksi, getStrukHTML, cetakStrukTransaksi } from "@/lib/api/transaksiHelper";
 import { withAuthRetry } from "@/lib/api/withAuthRetry";
+import { AutoPrintWrapper, useAutoPrint } from "@/components/printer";
 
 export default function KasirPage() {
   // State
@@ -41,6 +42,9 @@ export default function KasirPage() {
   const [detailTransaksi, setDetailTransaksi] = useState<any>(null);
   const [loadingTransaksi, setLoadingTransaksi] = useState(false);
   const [hargaEceranInput, setHargaEceranInput] = useState<{[key: string]: string}>({});
+
+  // Auto Print Hook
+  const { autoPrintStruk, isPrinterConnected } = useAutoPrint();
 
   // Debouncing untuk search query
   useEffect(() => {
@@ -389,6 +393,15 @@ export default function KasirPage() {
       setDetailTransaksi(detailData);
       setShowModalTransaksi(true);
       
+      // Auto Print struk jika printer terhubung (hanya untuk transaksi keluar/penjualan)
+      if (tipeTransaksi === 'keluar' && isPrinterConnected) {
+        console.log('Starting auto print for transaction:', transactionId);
+        // Auto print struk dengan delay 1 detik untuk memastikan modal tertampil
+        setTimeout(() => {
+          autoPrintStruk(transactionId);
+        }, 1000);
+      }
+      
       // Reset keranjang setelah transaksi berhasil
       setKeranjang([]);
       
@@ -500,7 +513,8 @@ export default function KasirPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 p-4 md:p-8">
+    <AutoPrintWrapper>
+      <div className="flex flex-col md:flex-row gap-6 p-4 md:p-8">
       {/* Kiri: Cari & Daftar Produk */}
       <div className="flex-1 space-y-6">
         {/* Pilihan Tipe Transaksi */}
@@ -855,6 +869,24 @@ export default function KasirPage() {
                 />
               </div>
 
+              {/* Status Auto Print */}
+              {tipeTransaksi === 'keluar' && (
+                <div className={`mt-4 p-3 rounded-lg border ${isPrinterConnected ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isPrinterConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                    <span className={`text-sm font-medium ${isPrinterConnected ? 'text-green-700' : 'text-yellow-700'}`}>
+                      Auto Print: {isPrinterConnected ? 'Aktif' : 'Non-aktif'}
+                    </span>
+                  </div>
+                  <p className={`text-xs mt-1 ${isPrinterConnected ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {isPrinterConnected 
+                      ? 'Struk akan dicetak otomatis setelah transaksi selesai' 
+                      : 'Printer tidak terhubung - struk tidak akan dicetak otomatis'
+                    }
+                  </p>
+                </div>
+              )}
+
               {/* Button Selesaikan Transaksi */}
               <button
                 onClick={selesaikanTransaksi}
@@ -986,6 +1018,7 @@ export default function KasirPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AutoPrintWrapper>
   );
 }
