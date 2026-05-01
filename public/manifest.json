@@ -1,7 +1,7 @@
 {
-  "name": "POS Sparepart ChiCha",
-  "short_name": "POS ChiCha",
-  "description": "Aplikasi POS Sparepart ChiCha Mobile",
+  "name": "POS Sparepart iBii",
+  "short_name": "POS iBii",
+  "description": "Aplikasi POS Sparepart iBii Mobile",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

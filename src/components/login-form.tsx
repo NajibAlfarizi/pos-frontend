@@ -89,19 +89,21 @@ export function LoginForm(props: React.ComponentProps<"div">) {
                   "flex flex-col items-center text-center space-y-2 sm:space-y-3 transition-all duration-700 ease-out delay-200",
                   mounted ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
                 )}>
-                  {/* Logo with animation - responsive sizes */}
+                  {/* Logo Image - responsive sizes */}
                   <div className="relative">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3 shadow-lg transform hover:scale-110 transition-transform duration-300">
-                      <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-pulse" />
-                    </div>
-                    <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                      <Sparkles className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-white animate-spin" />
-                    </div>
+                    <Image
+                      src="/logo-ibii.png"
+                      alt="iBii Mobile Logo"
+                      width={80}
+                      height={80}
+                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain drop-shadow-lg"
+                      priority
+                    />
                   </div>
 
                   <div className="space-y-1">
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                      ChiCha Mobile
+                      iBii Mobile
                     </h1>
                     <h2 className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-300">
                       Welcome Back!

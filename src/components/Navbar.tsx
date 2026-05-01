@@ -133,7 +133,7 @@ export default function Navbar() {
           {/* Hamburger menu dihilangkan di mobile karena sudah ada BottomNavbar */}
           <div className="flex flex-col">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight drop-shadow-lg">
-              ChiCha Mobile
+              iBii Mobile
             </h1>
             <div className="text-xs text-white/80 font-medium hidden sm:block">
               Point of Sale System
