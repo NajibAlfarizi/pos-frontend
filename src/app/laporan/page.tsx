@@ -939,7 +939,7 @@ export default function LaporanPage() {
                               displayColors: true,
                               callbacks: {
                                 label: function(context) {
-                                  return `${context.dataset.label}: ${formatRupiah(context.parsed.y)}`;
+                                  return `${context.dataset.label}: ${formatRupiah(context.parsed.y ?? 0)}`;
                                 }
                               }
                             }
