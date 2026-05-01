@@ -234,7 +234,7 @@ export default function Navbar() {
       </div>
 
       {/* CSS untuk animasi marquee */}
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes marquee {
           0% {
             transform: translate3d(0, 0, 0);
@@ -249,7 +249,7 @@ export default function Navbar() {
         .animate-marquee:hover {
           animation-play-state: paused;
         }
-      `}</style>
+      ` }} />
     </header>
   );
 }
