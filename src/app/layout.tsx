@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// @ts-expect-error - globals.css import is valid in Next.js server components
 import "./globals.css";
 import { Toaster } from "sonner";
 import { GlobalLoadingProvider } from "./GlobalLoadingContext";
