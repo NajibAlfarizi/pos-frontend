@@ -10,13 +10,13 @@
   "form_factor": "wide",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/logo-ibii.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/logo-ibii.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
